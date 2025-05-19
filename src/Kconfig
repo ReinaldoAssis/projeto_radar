@@ -1,0 +1,20 @@
+# app/Kconfig ou src/Kconfig
+mainmenu "Radar Configuration"
+
+config RADAR_SENSOR_DISTANCE_MM
+    int "Distância entre sensores (mm)"
+    default 1000  # Exemplo: 1 metro
+    help
+      Define a distância física em milímetros entre os dois sensores magnéticos.
+
+config RADAR_SPEED_LIMIT_KMH
+    int "Limite de velocidade (km/h)"
+    default 60
+    help
+      Define o limite de velocidade em km/h para detecção de infrações.
+
+config CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT
+    int "Taxa de falha da câmera (%)"
+    default 10
+    help
+      Define a taxa em porcentagem de falha da câmera simulada.
