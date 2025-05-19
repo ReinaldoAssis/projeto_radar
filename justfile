@@ -5,6 +5,7 @@ alias r := run
 alias m := monitor
 alias t := test
 alias br := build_run
+alias bt := run_sensor_tests
 alias active := activate
 
 default:
@@ -24,10 +25,12 @@ build_run:
     west build -t run
 
 test:
+    rm -rf twister-out
     west twister -p qemu_cortex_m3 -T tests
 
-run_button_tests: && run
-    west build -p -b qemu_cortex_m3 ./tests/button
+run_sensor_tests:
+    rm -rf twister-out
+    west twister -p qemu_cortex_m3 -T tests/sensor
 
 flash:
     west flash

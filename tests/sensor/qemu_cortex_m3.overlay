@@ -1,0 +1,20 @@
+#include <zephyr/dt-bindings/gpio/gpio.h>
+
+/ {
+	aliases {
+		sw0 = &front_button;
+		sw1 = &back_button;
+	};
+
+	buttons {
+		compatible = "gpio-keys";
+		debounce-interval-ms = <30>;
+
+		front_button: button_0 {
+			gpios = <&gpio0 1 GPIO_ACTIVE_LOW>;
+		};
+		back_button: button_1 {
+			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		};
+	};
+};

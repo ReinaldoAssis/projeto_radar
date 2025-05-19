@@ -1,4 +1,0 @@
-tests:
-  led_and_button.unittests:
-    integration_platforms:
-      - qemu_riscv32
