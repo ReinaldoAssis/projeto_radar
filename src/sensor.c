@@ -34,7 +34,7 @@ static void sensor1_triggered(const struct device *dev, struct gpio_callback *cb
     ARG_UNUSED(dev);
     ARG_UNUSED(cb);
     if (!sensor1_activated) {
-        timestamp_sensor1 = k_cycle_get_32();
+        timestamp_sensor1 = k_uptime_get_32();
         sensor1_activated = true;
         printk("Sensor 1 ativado em %" PRIu32 "\n", timestamp_sensor1);
     }
@@ -44,10 +44,20 @@ static void sensor2_triggered(const struct device *dev, struct gpio_callback *cb
     ARG_UNUSED(dev);
     ARG_UNUSED(cb);
     if (!sensor2_activated && sensor1_activated) {
-        timestamp_sensor2 = k_cycle_get_32();
+        timestamp_sensor2 = k_uptime_get_32();
         sensor2_activated = true;
         printk("Sensor 2 ativado em %" PRIu32 "\n", timestamp_sensor2);
     }
+}
+
+// Função dedicada para cálculo da velocidade (igual à dos testes)
+float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m) {
+    uint32_t dticks = t2_ms - t1_ms;
+    float dt = (float)dticks / 1000.0f;
+    if (dt <= 0.0f) return 0.0f;
+    float velocidade_ms = distancia_m / dt;
+    if (velocidade_ms < 0.0f) return 0.0f;
+    return velocidade_ms * 3.6f;
 }
 
 void sensor_thread(void *arg1, void *arg2, void *arg3) {
@@ -91,17 +101,14 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
         if (sensor1_activated && sensor2_activated) {
             uint32_t dticks = timestamp_sensor2 - timestamp_sensor1;
-            uint32_t freq = sys_clock_hw_cycles_per_sec();
-            float dt = (float)dticks / freq;
 #ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
             float distancia_m = CONFIG_RADAR_SENSOR_DISTANCE_MM / 1000.0f;
 #else
             float distancia_m = 1.0f; // valor padrão 1 metro
 #endif
-            float velocidade_ms = distancia_m / dt;
-            float velocidade_kmh = velocidade_ms * 3.6f;
-            printk("Tempo: %u ticks, Velocidade: %.2f km/h\n", dticks, velocidade_kmh);
-            LOG_INF("Tempo: %u ticks, Velocidade: %.2f km/h", dticks, velocidade_kmh);
+            float velocidade_kmh = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m);
+            printk("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, (double)velocidade_kmh);
+            LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, (double)velocidade_kmh);
             // Reset para próxima medição
             sensor1_activated = false;
             sensor2_activated = false;
