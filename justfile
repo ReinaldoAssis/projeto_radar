@@ -5,7 +5,7 @@ alias r := run
 alias m := monitor
 alias t := test
 alias br := build_run
-alias bt := run_sensor_tests
+alias bt := run_all_tests
 alias active := activate
 
 default:
@@ -32,6 +32,15 @@ run_sensor_tests:
     rm -rf twister-out
     west twister -p qemu_cortex_m3 -T tests/sensor
 
+run_integration_tests:
+    rm -rf twister-out
+    west twister -p qemu_cortex_m3 -T tests/infracao
+
+run_all_tests:
+    rm -rf twister-out
+    just run_integration_tests
+    just run_sensor_tests
+
 flash:
     west flash
 
@@ -40,3 +49,4 @@ run:
 
 monitor:
     tio -b 115200 /dev/tty.usbmodem0006831335301
+
