@@ -10,5 +10,5 @@ zephyr_include_directories(include/)
 
 list(APPEND ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_SOURCE_DIR}/src)
 
-target_sources(app PRIVATE src/main.c src/sensor.c)
+target_sources(app PRIVATE src/main.c src/sensor.c src/camera_lpr_thread.c)
 
