@@ -18,3 +18,21 @@ config CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT
     default 10
     help
       Define a taxa em porcentagem de falha da câmera simulada.
+
+config NET_SAMPLE_SNTP_SERVER_ADDRESS
+    string "SNTP server address"
+    default "a.st1.ntp.br"
+    help
+      Define o endereço do servidor SNTP. Por padrão é "a.st1.ntp.br".
+
+  config NET_SAMPLE_SNTP_SERVER_PORT
+    int "SNTP server port"
+    default 123
+    help
+      Define a porta do servidor SNTP. O padrão é 123.
+
+  config NET_SAMPLE_SNTP_SERVER_TIMEOUT_MS
+    int "Duration to wait for response"
+    default 2000
+    help
+      Define a duração em milissegundos para aguardar uma resposta do servidor SNTP. O padrão é 2000 ms.

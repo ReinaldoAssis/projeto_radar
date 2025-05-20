@@ -7,4 +7,4 @@ manifest:
       remote: zephyrproject-rtos
       clone-depth: 1
       revision: v4.1.0
-path: led_and_button
+path: projeto_radar
