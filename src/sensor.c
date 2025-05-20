@@ -5,6 +5,7 @@
 #include <zephyr/sys/printk.h>
 #include <zephyr/logging/log.h>
 #include <inttypes.h>
+#include <zephyr/zbus/zbus.h>
 
 LOG_MODULE_REGISTER(sensor);
 
@@ -29,6 +30,8 @@ static volatile uint32_t timestamp_sensor1 = 0;
 static volatile uint32_t timestamp_sensor2 = 0;
 static volatile bool sensor1_activated = false;
 static volatile bool sensor2_activated = false;
+
+extern struct zbus_channel velocidade_chan;
 
 static void sensor1_triggered(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     ARG_UNUSED(dev);
@@ -109,6 +112,8 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
             float velocidade_kmh = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m);
             printk("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, (double)velocidade_kmh);
             LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, (double)velocidade_kmh);
+            // Publica velocidade no canal ZBUS
+            zbus_chan_pub(&velocidade_chan, &velocidade_kmh, K_NO_WAIT);
             // Reset para próxima medição
             sensor1_activated = false;
             sensor2_activated = false;

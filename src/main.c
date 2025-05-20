@@ -1,8 +1,11 @@
 #include <stdio.h>
 #include <zephyr/kernel.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/zbus/zbus.h>
 #include "sensor.h"
-#include "camera_lpr_thread.h" // Adicionado para thread LPR
+#include "camera_lpr_thread.h"
+
+extern struct zbus_channel lpr_trigger_chan;
 
 LOG_MODULE_REGISTER(main);
 
@@ -30,6 +33,9 @@ struct k_thread main_thread_data;
 struct k_thread network_thread_data;
 struct k_thread camera_lpr_thread_data;
 
+// Canal ZBUS para comunicação de velocidade
+ZBUS_CHAN_DEFINE(velocidade_chan, float, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(0.0f));
+
 void display_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
         print_log("Thread de Display executando...");
@@ -38,9 +44,30 @@ void display_thread(void *arg1, void *arg2, void *arg3) {
 }
 
 void main_thread(void *arg1, void *arg2, void *arg3) {
+    float velocidade;
     while (1) {
-        print_log("Thread Principal executando...");
-        k_msleep(1000); // Simulação temporária
+        // Aguarda velocidade dos sensores
+        int ret = zbus_chan_read(&velocidade_chan, &velocidade, K_FOREVER);
+        if (ret == 0) {
+            print_log("Thread Principal: velocidade recebida");
+            // Detecção de infração
+			
+			#ifdef CONFIG_RADAR_SPEED_LIMIT_KMH
+            float limite = CONFIG_RADAR_SPEED_LIMIT_KMH;
+			#else
+            float limite = 60.0f; // valor padrão
+			#endif
+
+            if (velocidade > limite) {
+                print_log("Infração detectada! Acionando câmera...");
+                int trigger = 1;
+                zbus_chan_pub(&lpr_trigger_chan, &trigger, K_NO_WAIT);
+            } else {
+                print_log("Velocidade dentro do limite.");
+            }
+        }
+
+        k_msleep(100); // evitar busy loop
     }
 }
 
