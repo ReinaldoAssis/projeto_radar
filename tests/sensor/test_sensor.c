@@ -28,4 +28,20 @@ ZTEST(sensor, test_velocidade_zero) {
     zassert_equal(v, 0.0f, "Velocidade deve ser 0.0 km/h");
 }
 
+ZTEST(sensor, test_dist_zero) {
+    float distancia_m = 0.0f;
+    uint32_t t1 = 1000;
+    uint32_t t2 = 2000; // ms
+    float v = calcular_velocidade_kmh(t1, t2, distancia_m);
+    zassert_equal(v, 0.0f, "Velocidade deve ser 0.0 km/h");
+}
+
+ZTEST(sensor, test_dist_negativa) {
+    float distancia_m = -1.0f;
+    uint32_t t1 = 1000;
+    uint32_t t2 = 2000; // ms
+    float v = calcular_velocidade_kmh(t1, t2, distancia_m);
+    zassert_equal(v, 0.0f, "Velocidade deve ser 0.0 km/h");
+}
+
 ZTEST_SUITE(sensor, NULL, NULL, NULL, NULL, NULL);
