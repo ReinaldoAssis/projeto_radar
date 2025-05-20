@@ -23,6 +23,19 @@ menu "Radar Configuration"
       help
         Define a taxa em porcentagem de falha da câmera simulada.
 
+  config SIMULATE_PROCESSING_TIME
+      bool "Simular tempo de processamento"
+      default y
+      help
+        Habilita a simulação do tempo de processamento de componentes.
+  
+  config RADAR_PROCESSING_TIME_MS
+      int "Tempo de processamento (ms)"
+      default 500
+      depends on SIMULATE_PROCESSING_TIME
+      help
+        Define o tempo de processamento em milissegundos para simulação.
+
   config NET_SAMPLE_SNTP_SERVER_ADDRESS
       string "SNTP server address"
       default "a.st1.ntp.br"
