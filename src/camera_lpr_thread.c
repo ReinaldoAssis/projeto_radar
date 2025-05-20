@@ -33,13 +33,16 @@ ZBUS_CHAN_DEFINE(lpr_result_chan,
 
 static void gerar_placa(char *placa, bool *valida) {
     uint32_t rand_val = sys_rand32_get();
-    // 80% chance de placa válida
-    if ((rand_val % 100) < 80) {
+    uint8_t fail_chance = rand_val % 100;
+    if (fail_chance < CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT) {
+        // Placa inválida (falha simulada)
+        placa[0] = '\0';
+        *valida = false;
+        LOG_INF("Falha simulada na câmera LPR");
+        printk("Falha simulada na câmera LPR\n");
+    } else {
         strcpy(placa, "BRA2E19"); // Exemplo Mercosul válida
         *valida = true;
-    } else {
-        strcpy(placa, "1234XXX"); // Inválida
-        *valida = false;
     }
 }
 
@@ -55,7 +58,7 @@ void camera_lpr_thread(void)
         zbus_chan_read(&lpr_trigger_chan, &trigger, K_FOREVER);
 
         // Simula tempo de processamento
-        // k_msleep(500);
+        k_msleep(500);
 
         // Gera placa e hash
         char placa[16];
@@ -64,31 +67,15 @@ void camera_lpr_thread(void)
         gerar_placa(placa, &valida);
         gerar_hash_foto(hash);
 
-        // Aplica taxa de falha da câmera
-        uint32_t rand_val = sys_rand32_get();
-        uint8_t fail_chance = rand_val % 100;
-        bool falha = (fail_chance < CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT);
-
         struct {
             char placa[16];
             char hash[32];
             bool valida;
-            bool falha; // novo campo para indicar falha
         } resultado;
 
-        if (falha) {
-            resultado.placa[0] = '\0';
-            resultado.hash[0] = '\0';
-            resultado.valida = false;
-            resultado.falha = true;
-            LOG_INF("Falha simulada na câmera LPR");
-            printk("Falha simulada na câmera LPR\n");
-        } else {
-            strcpy(resultado.placa, placa);
-            strcpy(resultado.hash, hash);
-            resultado.valida = valida;
-            resultado.falha = false;
-        }
+        strcpy(resultado.placa, placa);
+        strcpy(resultado.hash, hash);
+        resultado.valida = valida;
 
         // Publica resultado no canal ZBUS
         zbus_chan_pub(&lpr_result_chan, &resultado, K_NO_WAIT);
