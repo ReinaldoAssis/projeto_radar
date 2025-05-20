@@ -57,8 +57,11 @@ void camera_lpr_thread(void)
         int trigger;
         zbus_chan_read(&lpr_trigger_chan, &trigger, K_FOREVER);
 
-        // Simula tempo de processamento
-        k_msleep(500);
+        // Simula tempo de processamento caso habilitado
+        if (CONFIG_SIMULATE_PROCESSING_TIME)
+        {
+            k_msleep(CONFIG_RADAR_PROCESSING_TIME_MS);
+        }
 
         // Gera placa e hash
         char placa[16];
