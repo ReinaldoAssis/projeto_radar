@@ -8,6 +8,13 @@ menu "dev"
       default y
       help
         Habilita a simulação de passagem de carro.
+
+  config TEST_SNTP
+      bool "Testar SNTP"
+      default n
+      help
+        Habilita o teste do SNTP.
+
 endmenu
 
 menu "Radar Configuration"
