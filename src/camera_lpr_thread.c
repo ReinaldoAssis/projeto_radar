@@ -55,33 +55,35 @@ void camera_lpr_thread(void)
     while (1) {
         // Aguarda trigger via ZBUS
         int trigger;
-        zbus_chan_read(&lpr_trigger_chan, &trigger, K_FOREVER);
+        int ret = zbus_chan_read(&lpr_trigger_chan, &trigger, K_FOREVER);
+        if (ret == 0 && trigger) {
+            // Simula tempo de processamento caso habilitado
+            if (CONFIG_SIMULATE_PROCESSING_TIME)
+            {
+                k_msleep(CONFIG_RADAR_PROCESSING_TIME_MS);
+            }
 
-        // Simula tempo de processamento caso habilitado
-        if (CONFIG_SIMULATE_PROCESSING_TIME)
-        {
-            k_msleep(CONFIG_RADAR_PROCESSING_TIME_MS);
-        }
-
-        // Gera placa e hash
-        char placa[16];
-        char hash[32];
-        bool valida;
-        gerar_placa(placa, &valida);
-        gerar_hash_foto(hash);
-
-        struct {
+            // Gera placa e hash
             char placa[16];
             char hash[32];
             bool valida;
-        } resultado;
+            gerar_placa(placa, &valida);
+            gerar_hash_foto(hash);
 
-        strcpy(resultado.placa, placa);
-        strcpy(resultado.hash, hash);
-        resultado.valida = valida;
+            struct {
+                char placa[16];
+                char hash[32];
+                bool valida;
+            } resultado;
 
-        // Publica resultado no canal ZBUS
-        zbus_chan_pub(&lpr_result_chan, &resultado, K_NO_WAIT);
+            strcpy(resultado.placa, placa);
+            strcpy(resultado.hash, hash);
+            resultado.valida = valida;
+
+            // Publica resultado no canal ZBUS
+            zbus_chan_pub(&lpr_result_chan, &resultado, K_NO_WAIT);
+        }
+        // else: ignora triggers inválidos ou erros de leitura
     }
 }
 
