@@ -104,6 +104,8 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
     printk("Thread de Sensores inicializada (aliases sw0 e sw1)\n");
     LOG_INF("Thread de Sensores inicializada (aliases sw0 e sw1)");
 
+    static uint32_t event_id = 0;
+
     while (1) {
         if (sensor1_activated && sensor2_activated) {
             uint32_t dticks = timestamp_sensor2 - timestamp_sensor1;
@@ -118,8 +120,13 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
             // Use printf para imprimir float corretamente
             printf("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, velocidade_kmh);
             LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, velocidade_kmh);
-            // Publica velocidade no canal ZBUS
-            zbus_chan_pub(&velocidade_chan, &velocidade_kmh, K_NO_WAIT);
+
+            struct velocidade_evento_t evento = {
+                .velocidade_kmh = velocidade_kmh,
+                .event_id = ++event_id
+            };
+            zbus_chan_pub(&velocidade_chan, &evento, K_NO_WAIT);
+
             // Reset para próxima medição
             sensor1_activated = false;
             sensor2_activated = false;
