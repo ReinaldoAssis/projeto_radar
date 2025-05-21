@@ -10,7 +10,6 @@
 
 #include <zephyr/ztest.h>
 #include <zephyr/zbus/zbus.h>
-#include "camera_lpr_thread.h" /* For LPR thread definitions (if any used directly) */
 #include "canais.h"             /* For Zbus channel definitions */
 
 /* External Zbus channel for speed data. */

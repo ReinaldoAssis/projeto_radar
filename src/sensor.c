@@ -107,11 +107,13 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
         if (sensor1_activated && sensor2_activated) {
             uint32_t dticks = timestamp_sensor2 - timestamp_sensor1;
-#ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
+
+            #ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
             float distancia_m = CONFIG_RADAR_SENSOR_DISTANCE_MM / 1000.0f;
-#else
+            #else
             float distancia_m = 1.0f; // valor padrão 1 metro
-#endif
+            #endif
+            
             float velocidade_kmh = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m);
             // Use printf para imprimir float corretamente
             printf("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, velocidade_kmh);
