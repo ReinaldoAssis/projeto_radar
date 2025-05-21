@@ -24,12 +24,6 @@ menu "Radar Configuration"
       help
         Define o limite de velocidade em km/h para detecção de infrações.
 
-  config RADAR_CAMERA_FAILURE_RATE_PERCENT
-      int "Taxa de falha da câmera (%)"
-      default 10
-      help
-        Define a taxa em porcentagem de falha da câmera simulada.
-
   config SIMULATE_PROCESSING_TIME
       bool "Simular tempo de processamento"
       default y
