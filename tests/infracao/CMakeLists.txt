@@ -4,4 +4,4 @@ project(sensor_test)
 
 zephyr_include_directories(../../include/)
 
-target_sources(app PRIVATE ${app_sources} ../../src/sensor.c ../../src/camera_lpr_thread.c ./test_infracao.c)
+target_sources(app PRIVATE ${app_sources} ../../src/sensor.c ../../src/canais.c ../../src/system.c ../../src/camera_lpr_thread.c ./test_infracao.c)

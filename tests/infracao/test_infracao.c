@@ -1,16 +1,32 @@
 #include <zephyr/ztest.h>
 #include <zephyr/zbus/zbus.h>
 #include "camera_lpr_thread.h"
+#include "canais.h"
+
 
 // Externs dos canais definidos no app
 extern struct zbus_channel velocidade_chan;
 extern struct zbus_channel lpr_trigger_chan;
+
+// Adicione esta linha para garantir que a função main seja visível
+// extern void init_threads(void);
+
+// extern void system_start(void);
+extern void print_log(const char *message);
 
 // Helper para limpar o canal trigger
 static void clear_lpr_trigger() {
     int dummy;
     // Limpa qualquer trigger pendente
     while (zbus_chan_read(&lpr_trigger_chan, &dummy, K_NO_WAIT) == 0) {}
+}
+
+void *test_setup(void)
+{
+    // Chame a função que inicializa as threads do app
+    print_log("Test setup chamado...");
+    // init_threads();
+    return NULL;
 }
 
 ZTEST(integration, test_velocidade_sem_infracao)
@@ -38,4 +54,4 @@ ZTEST(integration, test_velocidade_com_infracao)
     zassert_equal(trigger, 1, "Trigger de câmera deve ser 1");
 }
 
-ZTEST_SUITE(integration, NULL, NULL, NULL, NULL, NULL);
+ZTEST_SUITE(integration, NULL, test_setup, NULL, NULL, NULL);
