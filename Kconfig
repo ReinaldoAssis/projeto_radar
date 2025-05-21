@@ -2,6 +2,13 @@ menu "Zephyr"
   source "Kconfig.zephyr"
 endmenu
 
+menu "dev"
+  config SIM_CAR_PASSAGE
+      bool "Simular passagem de carro"
+      default y
+      help
+        Habilita a simulação de passagem de carro.
+endmenu
 
 menu "Radar Configuration"
 
