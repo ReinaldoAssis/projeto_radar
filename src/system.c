@@ -1,7 +1,8 @@
 #include "system.h"
 #include "sensor.h"
-#include "camera_lpr_thread.h"
+// #include "camera_lpr_thread.h" // Remover, não é mais necessário
 #include "canais.h"
+#include "camera_service.h" // Adicionar para acesso à API da câmera"
 
 #include <stdio.h>
 #include <zephyr/kernel.h>
@@ -10,7 +11,7 @@
 #include <string.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 
-extern struct zbus_channel lpr_trigger_chan;
+extern struct zbus_channel velocidade_chan;
 
 LOG_MODULE_REGISTER(system);
 
@@ -55,8 +56,11 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
 
             if (velocidade > limite) {
                 print_log("Infração detectada! Acionando câmera...");
-                int trigger = 1;
-                zbus_chan_pub(&lpr_trigger_chan, &trigger, K_NO_WAIT);
+                // Trigger via camera_service (canal ZBUS)
+                int err = camera_api_capture(K_NO_WAIT);
+                if (err) {
+                    print_log("Falha ao acionar câmera via ZBUS!");
+                }
             } else {
                 // print_log("Velocidade dentro do limite.");
             }
@@ -78,7 +82,8 @@ void print_log(const char *message) {
 }
 
 static void camera_lpr_thread_entry(void *arg1, void *arg2, void *arg3) {
-    camera_lpr_thread();
+    // camera_lpr_thread(); // Remover chamada antiga
+    // Não faz mais nada, pois a lógica foi movida para camera_service
 }
 
 void init_threads(void)
@@ -92,9 +97,10 @@ void init_threads(void)
     // k_thread_create(&network_thread_data, network_stack, NETWORK_THREAD_STACK_SIZE,
     //                 network_thread, NULL, NULL, NULL,
     //                 NETWORK_THREAD_PRIORITY, 0, K_NO_WAIT);
-    k_thread_create(&camera_lpr_thread_data, camera_lpr_stack, CAMERA_LPR_THREAD_STACK_SIZE,
-                    camera_lpr_thread_entry, NULL, NULL, NULL,
-                    CAMERA_LPR_THREAD_PRIORITY, 0, K_NO_WAIT);
+    // k_thread_create(&camera_lpr_thread_data, camera_lpr_stack, CAMERA_LPR_THREAD_STACK_SIZE,
+    //                 camera_lpr_thread_entry, NULL, NULL, NULL,
+    //                 CAMERA_LPR_THREAD_PRIORITY, 0, K_NO_WAIT);
+    // Não cria mais a thread camera_lpr_thread
 }
 
 void sim_car_pass(void)
