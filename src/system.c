@@ -9,8 +9,8 @@
 #include <zephyr/zbus/zbus.h>
 #include <string.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
+#include <zephyr/random/random.h>
 
-extern struct zbus_channel velocidade_chan;
 
 LOG_MODULE_REGISTER(system);
 
@@ -49,34 +49,65 @@ void print_log(const char *message) {
     printk("%s\n", message);
 }
 
+#if CONFIG_TEST_SNTP
+#include <zephyr/net/sntp.h>
+#include <zephyr/net/socket.h>
+
+void test_sntp(void)
+{
+    struct sntp_time ts;
+    int rc;
+
+    // Use o endereço do servidor NTP no formato string
+    const char *ntp_server = "200.160.7.186:123";
+
+    rc = sntp_simple(ntp_server, 10000, &ts);
+
+    if (rc == 0) {
+        print_log("SNTP request successful.");
+        LOG_INF("Time: %u seconds, %u fraction", ts.seconds, ts.fraction);
+        printk("Time: %u seconds, %u fraction\n", ts.seconds, ts.fraction);
+
+        time_t current_time = (time_t)ts.seconds;
+        if (current_time >= 2208988800UL) {
+            current_time -= 2208988800UL;
+        } else {
+            print_log("Warning: NTP time is before Unix epoch, cannot convert directly.");
+        }
+
+        char buffer[30];
+        struct tm *tm_info = gmtime(&current_time);
+        if (tm_info) {
+            strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", tm_info);
+            LOG_INF("Current UTC time: %s", buffer);
+            printk("Current UTC time: %s\n", buffer);
+        } else {
+            print_log("Failed to convert NTP time to human-readable format.");
+        }
+
+    } else {
+        print_log("SNTP request failed.");
+        LOG_ERR("SNTP error: %d", rc);
+        printk("SNTP error: %d\n", rc);
+    }
+}
+#endif
+
 
 void sim_car_pass(void)
 {
+    // delay entre 0 a 20 ms
+    int random_delay = sys_rand32_get() % 21;
 
-    int random_delay = sys_rand32_get() % 1000; // Gera um atraso aleatório entre 0 e 999 ms
-
-    // Simula a passagem de um carro
     print_log("Carro passando...");
     gpio_emul_input_set(sensor1.port, sensor1.pin, 1);
-    k_msleep(100); // Simula o tempo de passagem
+    k_msleep(random_delay); // Simula o tempo de passagem
     gpio_emul_input_set(sensor1.port, sensor1.pin, 0);
-    k_msleep(100); // Aguarda um pouco antes de ativar o segundo sensor
+    k_msleep(random_delay); // Aguarda um pouco antes de ativar o segundo sensor
     gpio_emul_input_set(sensor2.port, sensor2.pin, 1);
-    k_msleep(100); // Simula o tempo de passagem
+    k_msleep(random_delay); // Simula o tempo de passagem
     gpio_emul_input_set(sensor2.port, sensor2.pin, 0);
     print_log("Carro passou!");
-    // Aguarda um tempo para simular o processamento
-    k_msleep(1000);
-
-    print_log("Carro passando beeem rápiddoooo vrummmmm...");
-    gpio_emul_input_set(sensor1.port, sensor1.pin, 1);
-    k_msleep(10); // Simula o tempo de passagem
-    gpio_emul_input_set(sensor1.port, sensor1.pin, 0);
-    k_msleep(10); // Aguarda um pouco antes de ativar o segundo sensor
-    gpio_emul_input_set(sensor2.port, sensor2.pin, 1);
-    k_msleep(10); // Simula o tempo de passagem
-    gpio_emul_input_set(sensor2.port, sensor2.pin, 0);
-    print_log("Carro passou! Eita caraaaai boommm!");
     k_msleep(1000);
 }
 
@@ -89,6 +120,9 @@ void system_start(void)
         if (CONFIG_SIM_CAR_PASSAGE) {
             sim_car_pass();
         }
-        k_msleep(8000);
+        #if CONFIG_TEST_SNTP
+        test_sntp();
+        #endif
+        k_msleep(2000);
     }
 }
