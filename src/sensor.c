@@ -1,4 +1,5 @@
 #include "sensor.h"
+#include "canais.h"
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -6,6 +7,7 @@
 #include <zephyr/logging/log.h>
 #include <inttypes.h>
 #include <zephyr/zbus/zbus.h>
+#include <stdio.h> // Incluído para usar printf
 
 LOG_MODULE_REGISTER(sensor);
 
@@ -20,8 +22,8 @@ LOG_MODULE_REGISTER(sensor);
 #error "Unsupported board: sw1 devicetree alias is not defined"
 #endif
 
-static const struct gpio_dt_spec sensor1 = GPIO_DT_SPEC_GET(SENSOR1_NODE, gpios);
-static const struct gpio_dt_spec sensor2 = GPIO_DT_SPEC_GET(SENSOR2_NODE, gpios);
+const struct gpio_dt_spec sensor1 = GPIO_DT_SPEC_GET(SENSOR1_NODE, gpios);
+const struct gpio_dt_spec sensor2 = GPIO_DT_SPEC_GET(SENSOR2_NODE, gpios);
 
 static struct gpio_callback sensor1_cb_data;
 static struct gpio_callback sensor2_cb_data;
@@ -30,8 +32,6 @@ static volatile uint32_t timestamp_sensor1 = 0;
 static volatile uint32_t timestamp_sensor2 = 0;
 static volatile bool sensor1_activated = false;
 static volatile bool sensor2_activated = false;
-
-extern struct zbus_channel velocidade_chan;
 
 static void sensor1_triggered(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     ARG_UNUSED(dev);
@@ -62,6 +62,9 @@ float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m)
     if (velocidade_ms < 0.0f) return 0.0f;
     return velocidade_ms * 3.6f;
 }
+
+#define SENSOR_THREAD_STACK_SIZE 1024
+#define SENSOR_THREAD_PRIORITY 3
 
 void sensor_thread(void *arg1, void *arg2, void *arg3) {
     int ret;
@@ -110,8 +113,9 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
             float distancia_m = 1.0f; // valor padrão 1 metro
 #endif
             float velocidade_kmh = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m);
-            printk("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, (double)velocidade_kmh);
-            LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, (double)velocidade_kmh);
+            // Use printf para imprimir float corretamente
+            printf("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, velocidade_kmh);
+            LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, velocidade_kmh);
             // Publica velocidade no canal ZBUS
             zbus_chan_pub(&velocidade_chan, &velocidade_kmh, K_NO_WAIT);
             // Reset para próxima medição
@@ -121,3 +125,6 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
         k_msleep(10);
     }
 }
+
+// Criação automática da thread do sensor
+K_THREAD_DEFINE(sensor_tid, SENSOR_THREAD_STACK_SIZE, sensor_thread, NULL, NULL, NULL, SENSOR_THREAD_PRIORITY, 0, 0);
