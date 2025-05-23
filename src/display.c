@@ -27,15 +27,13 @@ static void display_thread(void *arg1, void *arg2, void *arg3) {
 
     if (!device_is_ready(dev)) {
         LOG_ERR("Auxdisplay device is not ready.");
-        printk("Auxdisplay device is not ready.\n");
     }
 
     rc = auxdisplay_cursor_set_enabled(dev, true);
 
-	if (rc != 0) {
-		LOG_ERR("Failed to enable cursor: %d", rc);
-        printk("Failed to enable cursor: %d\n", rc);
-	}
+    if (rc != 0) {
+        LOG_ERR("Failed to enable cursor: %d", rc);
+    }
 
     while (1) {
         struct display_data_t data;
@@ -44,9 +42,8 @@ static void display_thread(void *arg1, void *arg2, void *arg3) {
             // rc = auxdisplay_write(dev, data.text, strlen(data.text));
             // if (rc != 0) {
             //     LOG_ERR("Failed to write data: %d", rc);
-            //     printk("Failed to write data: %d\n", rc);
             // }
-            printk("\t- [Display] texto=%s |brilho=%d, contraste=%d|\n", data.text, data.brightness, data.contrast);
+            LOG_INF("\t\t %s \t |brilho=%d, contraste=%d|", data.text, data.brightness, data.contrast);
         }
     }
 }

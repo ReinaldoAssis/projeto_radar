@@ -116,13 +116,13 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
                             snprintf(display_msg.text, sizeof(display_msg.text), "Placa: %s", evt.captured_data->plate);
                             zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
-                            LOG_INF("\t- Camera: Placa capturada: %s", evt.captured_data->plate);
+                            // LOG_INF("\t- Camera: Placa capturada: %s", evt.captured_data->plate);
 
                             if (validar_placa_mercosul(evt.captured_data->plate, padrao)) {
                                 snprintf(display_msg.text, sizeof(display_msg.text), "Placa valida (%s)", padrao);
                                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
-                                LOG_INF("\t- Placa válida (%s)", padrao);
+                                // LOG_INF("\t- Placa válida (%s)", padrao);
                             } else {
                                 snprintf(display_msg.text, sizeof(display_msg.text), "Placa invalida!");
                                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);

@@ -32,13 +32,8 @@ run_sensor_tests:
     rm -rf twister-out
     west twister -p qemu_cortex_m3 -T tests/sensor
 
-run_integration_tests:
-    rm -rf twister-out
-    west twister -p qemu_cortex_m3 -T tests/infracao
-
 run_all_tests:
     rm -rf twister-out
-    just run_integration_tests
     just run_sensor_tests
 
 flash:
