@@ -96,19 +96,22 @@ void test_sntp(void)
 
 void sim_car_pass(void)
 {
-    // delay entre 0 a 20 ms
-    int random_delay = sys_rand32_get() % 21;
+    int random_delay = sys_rand32_get() % 300 + 200;
+    printk("Delay aleatório: %d ms\n", random_delay);
 
     print_log("Carro passando...");
     gpio_emul_input_set(sensor1.port, sensor1.pin, 1);
-    k_msleep(random_delay); // Simula o tempo de passagem
+    k_msleep(2); // Garante pulso detectável
     gpio_emul_input_set(sensor1.port, sensor1.pin, 0);
-    k_msleep(random_delay); // Aguarda um pouco antes de ativar o segundo sensor
+
+    k_msleep(random_delay); // Aguarda antes do segundo sensor
+
     gpio_emul_input_set(sensor2.port, sensor2.pin, 1);
-    k_msleep(random_delay); // Simula o tempo de passagem
+    k_msleep(2); // Garante pulso detectável
     gpio_emul_input_set(sensor2.port, sensor2.pin, 0);
+
     print_log("Carro passou!");
-    k_msleep(1000);
+    k_msleep(300);
 }
 
 void system_start(void)
@@ -123,6 +126,6 @@ void system_start(void)
         #if CONFIG_TEST_SNTP
         test_sntp();
         #endif
-        k_msleep(2000);
+        k_msleep(500);
     }
 }
