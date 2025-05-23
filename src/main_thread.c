@@ -10,7 +10,11 @@ LOG_MODULE_REGISTER(main_thread);
 #define MAIN_THREAD_STACK_SIZE 1024
 #define MAIN_THREAD_PRIORITY 1
 
-static bool validar_placa_mercosul(const char *placa) {
+
+ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
+ZBUS_CHAN_ADD_OBS(velocidade_chan, main_subscriber, 3);
+
+static bool validar_placa_mercosul(const char *placa, const char *padrao) {
     if (!placa) return false;
 
     // Remove espaços da string (cria uma cópia sem espaços)
@@ -30,6 +34,12 @@ static bool validar_placa_mercosul(const char *placa) {
         isdigit(placa_sem_espacos[3]) &&
         isalpha(placa_sem_espacos[4]) &&
         isdigit(placa_sem_espacos[5]) && isdigit(placa_sem_espacos[6])) {
+        
+        // retorna o tipo de padrão (LLLNLNN)
+        if (padrao != NULL){
+            strcpy(padrao, "LLLNLNN");
+        }
+
         return true;
     }
 
@@ -38,6 +48,11 @@ static bool validar_placa_mercosul(const char *placa) {
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) &&
         isdigit(placa_sem_espacos[2]) && isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) &&
         isalpha(placa_sem_espacos[5]) && isalpha(placa_sem_espacos[6])) {
+
+        // retorna o tipo de padrão (LLNNNLL)
+        if (padrao != NULL){
+            strcpy(padrao, "LLNNNLL");
+        }
         return true;
     }
 
@@ -46,6 +61,11 @@ static bool validar_placa_mercosul(const char *placa) {
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && isalpha(placa_sem_espacos[2]) &&
         isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) &&
         isalpha(placa_sem_espacos[5]) && isalpha(placa_sem_espacos[6])) {
+        
+        // retorna o tipo de padrão (LLLNNLL)
+        if (padrao != NULL){
+            strcpy(padrao, "LLLNNLL");
+        }
         return true;
     }
 
@@ -54,14 +74,15 @@ static bool validar_placa_mercosul(const char *placa) {
 
 static void main_thread(void *arg1, void *arg2, void *arg3) {
     struct velocidade_evento_t evento;
+    const struct zbus_channel *chan;
     uint32_t last_event_id = 0;
 
     LOG_INF("Thread principal executando...");
     printf("Thread principal executando...\n");
-    // TODO: usar observer (message subscriber, zbus_sub_wait_msg)
+
+    // TODO [OK]: usar observer (message subscriber, zbus_sub_wait_msg)
     while (1) {
-        int ret = zbus_chan_read(&velocidade_chan, &evento, K_FOREVER);
-        if (ret == 0) {
+        if (!zbus_sub_wait_msg(&main_subscriber, &chan, &evento, K_FOREVER)) {
             const float limite = IS_ENABLED(CONFIG_RADAR_SPEED_LIMIT_KMH) ? CONFIG_RADAR_SPEED_LIMIT_KMH : 60.0f;
 
             if (evento.event_id != last_event_id && evento.velocidade_kmh > limite) {
@@ -76,13 +97,15 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
                     // Espera resposta da câmera
                     struct msg_camera_evt evt;
                     int evt_ret = zbus_chan_read(&chan_camera_evt, &evt, K_MSEC(500));
+                    char padrao[8] = "";
+
                     if (evt_ret == 0) {
                         if (evt.type == MSG_CAMERA_EVT_TYPE_DATA && evt.captured_data) {
                             printf("\t- Camera: Placa capturada: %s\n", evt.captured_data->plate);
                             LOG_INF("\t- Camera: Placa capturada: %s", evt.captured_data->plate);
-                            if (validar_placa_mercosul(evt.captured_data->plate)) {
-                                printf("\t- Placa válida (Mercosul)\n");
-                                LOG_INF("\t- Placa válida (Mercosul)");
+                            if (validar_placa_mercosul(evt.captured_data->plate, padrao)) {
+                                printf("\t- Placa válida (%s)\n", padrao);
+                                LOG_INF("\t- Placa válida (%s)", padrao);
                             } else {
                                 printf("\t- Placa inválida!\n");
                                 LOG_WRN("\t- Placa inválida!");
@@ -101,7 +124,6 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
                 }
             }
         }
-        k_msleep(100);
     }
 }
 

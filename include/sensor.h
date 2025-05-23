@@ -25,6 +25,12 @@ struct velocidade_evento_t {
     uint32_t event_id;
 };
 
+struct sensor_evento_t {
+    uint32_t timestamp_sensor1;
+    uint32_t timestamp_sensor2;
+};
+
 ZBUS_CHAN_DECLARE(velocidade_chan);
+ZBUS_CHAN_DECLARE(sensor_chan);
 
 #endif
