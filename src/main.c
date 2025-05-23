@@ -115,7 +115,7 @@ int main(void) {
         test_sntp();
         #endif
 
-        if (sim_times >= 5) {
+        if (sim_times >= 10) {
             LOG_INF("Simulação concluída.");
             break;
         }
