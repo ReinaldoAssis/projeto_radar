@@ -1,5 +1,4 @@
 #include "sensor.h"
-#include "canais.h"
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -33,6 +32,10 @@ static volatile uint32_t timestamp_sensor2 = 0;
 static volatile bool sensor1_activated = false;
 static volatile bool sensor2_activated = false;
 
+
+ZBUS_MSG_SUBSCRIBER_DEFINE(sensor_subscriber);
+ZBUS_CHAN_ADD_OBS(sensor_chan, sensor_subscriber, 3);
+
 static void sensor1_triggered(const struct device *dev, struct gpio_callback *cb, uint32_t pins) {
     ARG_UNUSED(dev);
     ARG_UNUSED(cb);
@@ -50,26 +53,48 @@ static void sensor2_triggered(const struct device *dev, struct gpio_callback *cb
         timestamp_sensor2 = k_uptime_get_32();
         sensor2_activated = true;
         printk("Sensor 2 ativado em %" PRIu32 "\n", timestamp_sensor2);
+
+        struct sensor_evento_t evento = {
+            .timestamp_sensor1 = timestamp_sensor1,
+            .timestamp_sensor2 = timestamp_sensor2
+        };
+
+        zbus_chan_pub(&sensor_chan, &evento, K_NO_WAIT);
     }
 }
 
-// TODO: retornar float em ponteiro
-float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m) 
+/**
+ * @brief Calculate speed in km/h based on sensor triggers
+ * 
+ * @param t1_ms Timestamp of first sensor trigger in milliseconds
+ * @param t2_ms Timestamp of second sensor trigger in milliseconds
+ * @param distancia_m Distance between sensors in meters
+ * @param velocidade_ptr Pointer to store the calculated speed value
+ * @return int 0 on success, negative error code otherwise
+ */
+int calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m, float *velocidade_ptr) 
 {
+    if (velocidade_ptr == NULL) {
+        return -EINVAL;
+    }
+
     uint32_t dticks = t2_ms - t1_ms;
     float dt = (float)dticks / 1000.0f;
 
     if (dt <= 0.0f) {
-        return 0.0f;
+        *velocidade_ptr = 0.0f;
+        return -ERANGE;
     }
 
     float velocidade_ms = distancia_m / dt;
 
     if (velocidade_ms < 0.0f){
-        return 0.0f;
+        *velocidade_ptr = 0.0f;
+        return -ERANGE;
     }
 
-    return velocidade_ms * 3.6f;
+    *velocidade_ptr = velocidade_ms * 3.6f;
+    return 0;
 }
 
 #define SENSOR_THREAD_STACK_SIZE 1024
@@ -116,35 +141,53 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
     static uint32_t event_id = 0;
 
 
-    // TODO: não usar polling
+    // TODO [OK]: não usar polling
     while (1) {
-        if (sensor1_activated && sensor2_activated) {
-            uint32_t dticks = timestamp_sensor2 - timestamp_sensor1;
+        struct sensor_evento_t evento;
+        const struct zbus_channel *chan;
 
-            #ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
-            float distancia_m = CONFIG_RADAR_SENSOR_DISTANCE_MM / 1000.0f;
-            #else
-            float distancia_m = 1.0f; // valor padrão 1 metro
-            #endif
-            
-            float velocidade_kmh = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m);
-            // Use printf para imprimir float corretamente
-            printf("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, velocidade_kmh);
-            LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, velocidade_kmh);
+        if(!zbus_sub_wait_msg(&sensor_subscriber, &chan, &evento, K_FOREVER)) {
 
-            struct velocidade_evento_t evento = {
-                .velocidade_kmh = velocidade_kmh,
-                .event_id = ++event_id
-            };
-            zbus_chan_pub(&velocidade_chan, &evento, K_NO_WAIT);
 
-            // Reset para próxima medição
-            sensor1_activated = false;
-            sensor2_activated = false;
+            float limite = 60.0f;
+#ifdef CONFIG_RADAR_SPEED_LIMIT_KMH
+            limite = CONFIG_RADAR_SPEED_LIMIT_KMH;
+#endif
+
+            float distancia_m = 1.0f;
+#ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
+            distancia_m = CONFIG_RADAR_SENSOR_DISTANCE_MM / 1000.0f;
+#endif
+
+            if (evento.timestamp_sensor1 != 0 && evento.timestamp_sensor2 != 0) {
+                // Calcular velocidade
+                float velocidade_kmh = 0.0f;
+                int err = calcular_velocidade_kmh(evento.timestamp_sensor1, evento.timestamp_sensor2, distancia_m, &velocidade_kmh);
+
+                // Imprimir velocidade
+                uint32_t dticks = evento.timestamp_sensor2 - evento.timestamp_sensor1;
+                printf("[dist. %.2f] Tempo: %u ms, Velocidade: %.2f km/h\n", distancia_m, dticks, velocidade_kmh);
+                LOG_INF("[dist. %.2f] Tempo: %u ms, Velocidade: %.2f km/h", distancia_m, dticks, velocidade_kmh);
+
+                if (err == 0) {
+                    // Publicar evento de velocidade
+                    struct velocidade_evento_t vel_evento = {
+                        .velocidade_kmh = velocidade_kmh,
+                        .event_id = ++event_id
+                    };
+                    zbus_chan_pub(&velocidade_chan, &vel_evento, K_NO_WAIT);
+                }
+
+                sensor1_activated = false;
+                sensor2_activated = false;
+            }
         }
-        k_msleep(100);
     }
 }
 
-// Criação automática da thread do sensor
+
+ZBUS_CHAN_DEFINE(velocidade_chan, struct velocidade_evento_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(.velocidade_kmh = 0.0f, .event_id = 0));
+ZBUS_CHAN_DEFINE(sensor_chan, struct sensor_evento_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(.timestamp_sensor1 = 0, .timestamp_sensor2 = 0));
+
+
 K_THREAD_DEFINE(sensor_tid, SENSOR_THREAD_STACK_SIZE, sensor_thread, NULL, NULL, NULL, SENSOR_THREAD_PRIORITY, 0, 0);
