@@ -8,13 +8,32 @@ menu "dev"
       default y
       help
         Habilita a simulação de passagem de carro.
+
+  config TEST_SNTP
+      bool "Testar SNTP"
+      default n
+      help
+        Habilita o teste do SNTP.
+
+  config NET_SAMPLE_SNTP_SERVER_ADDRESS
+    string "SNTP server address"
+    default "a.st1.ntp.br"
+
+  config NET_SAMPLE_SNTP_SERVER_PORT
+    int "SNTP server port"
+    default 123
+
+  config NET_SAMPLE_SNTP_SERVER_TIMEOUT_MS
+    int "Duration to wait for response"
+    default 1000
+
 endmenu
 
 menu "Radar Configuration"
 
   config RADAR_SENSOR_DISTANCE_MM
       int "Distância entre sensores (mm)"
-      default 1000
+      default 5000
       help
         Define a distância física em milímetros entre os dois sensores magnéticos.
 
@@ -23,12 +42,6 @@ menu "Radar Configuration"
       default 60
       help
         Define o limite de velocidade em km/h para detecção de infrações.
-
-  config RADAR_CAMERA_FAILURE_RATE_PERCENT
-      int "Taxa de falha da câmera (%)"
-      default 10
-      help
-        Define a taxa em porcentagem de falha da câmera simulada.
 
   config SIMULATE_PROCESSING_TIME
       bool "Simular tempo de processamento"
