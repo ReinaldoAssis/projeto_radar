@@ -15,13 +15,25 @@ menu "dev"
       help
         Habilita o teste do SNTP.
 
+  config NET_SAMPLE_SNTP_SERVER_ADDRESS
+    string "SNTP server address"
+    default "a.st1.ntp.br"
+
+  config NET_SAMPLE_SNTP_SERVER_PORT
+    int "SNTP server port"
+    default 123
+
+  config NET_SAMPLE_SNTP_SERVER_TIMEOUT_MS
+    int "Duration to wait for response"
+    default 1000
+
 endmenu
 
 menu "Radar Configuration"
 
   config RADAR_SENSOR_DISTANCE_MM
       int "Distância entre sensores (mm)"
-      default 1000
+      default 5000
       help
         Define a distância física em milímetros entre os dois sensores magnéticos.
 
