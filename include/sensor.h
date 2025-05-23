@@ -18,7 +18,7 @@ extern const struct gpio_dt_spec sensor2;
 void sensor_thread(void *arg1, void *arg2, void *arg3);
 
 // Função de cálculo de velocidade (pode ser usada em testes)
-float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m);
+int calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m, float *velocidade_ptr);
 
 struct velocidade_evento_t {
     float velocidade_kmh;

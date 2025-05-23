@@ -12,7 +12,6 @@ LOG_MODULE_REGISTER(sensor);
 
 ZBUS_CHAN_DEFINE(velocidade_chan, struct velocidade_evento_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(.velocidade_kmh = 0.0f, .event_id = 0));
 
-
 // Definição dos sensores como GPIOs (aliases sw0 e sw1)
 #define SENSOR1_NODE DT_ALIAS(sw0)
 #define SENSOR2_NODE DT_ALIAS(sw1)
@@ -55,23 +54,38 @@ static void sensor2_triggered(const struct device *dev, struct gpio_callback *cb
     }
 }
 
-// TODO: retornar float em ponteiro
-float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m) 
+/**
+ * @brief Calculate speed in km/h based on sensor triggers
+ * 
+ * @param t1_ms Timestamp of first sensor trigger in milliseconds
+ * @param t2_ms Timestamp of second sensor trigger in milliseconds
+ * @param distancia_m Distance between sensors in meters
+ * @param velocidade_ptr Pointer to store the calculated speed value
+ * @return int 0 on success, negative error code otherwise
+ */
+int calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m, float *velocidade_ptr) 
 {
+    if (velocidade_ptr == NULL) {
+        return -EINVAL;
+    }
+
     uint32_t dticks = t2_ms - t1_ms;
     float dt = (float)dticks / 1000.0f;
 
     if (dt <= 0.0f) {
-        return 0.0f;
+        *velocidade_ptr = 0.0f;
+        return -ERANGE;
     }
 
     float velocidade_ms = distancia_m / dt;
 
     if (velocidade_ms < 0.0f){
-        return 0.0f;
+        *velocidade_ptr = 0.0f;
+        return -ERANGE;
     }
 
-    return velocidade_ms * 3.6f;
+    *velocidade_ptr = velocidade_ms * 3.6f;
+    return 0;
 }
 
 #define SENSOR_THREAD_STACK_SIZE 1024
@@ -129,7 +143,8 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
             float distancia_m = 1.0f; // valor padrão 1 metro
             #endif
             
-            float velocidade_kmh = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m);
+            float velocidade_kmh = 0.0f;
+            int err = calcular_velocidade_kmh(timestamp_sensor1, timestamp_sensor2, distancia_m, &velocidade_kmh);
             // Use printf para imprimir float corretamente
             printf("Tempo: %u ms, Velocidade: %.2f km/h\n", dticks, velocidade_kmh);
             LOG_INF("Tempo: %u ms, Velocidade: %.2f km/h", dticks, velocidade_kmh);
