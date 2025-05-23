@@ -53,27 +53,36 @@ static void sensor2_triggered(const struct device *dev, struct gpio_callback *cb
     }
 }
 
-// Função dedicada para cálculo da velocidade (igual à dos testes)
-float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m) {
+// TODO: retornar float em ponteiro
+float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m) 
+{
     uint32_t dticks = t2_ms - t1_ms;
     float dt = (float)dticks / 1000.0f;
-    if (dt <= 0.0f) return 0.0f;
+
+    if (dt <= 0.0f) {
+        return 0.0f;
+    }
+
     float velocidade_ms = distancia_m / dt;
-    if (velocidade_ms < 0.0f) return 0.0f;
+
+    if (velocidade_ms < 0.0f){
+        return 0.0f;
+    }
+
     return velocidade_ms * 3.6f;
 }
 
 #define SENSOR_THREAD_STACK_SIZE 1024
-#define SENSOR_THREAD_PRIORITY 3
+#define SENSOR_THREAD_PRIORITY 2
 
 void sensor_thread(void *arg1, void *arg2, void *arg3) {
     int ret;
-    // Verifica se os dispositivos GPIO estão prontos
+    
     if (!device_is_ready(sensor1.port) || !device_is_ready(sensor2.port)) {
         printk("Erro: GPIO dos sensores não está pronto\n");
         return;
     }
-    // Corrigido: não use GPIO_PULL_DOWN se o hardware não suporta, use apenas GPIO_INPUT
+    
     ret = gpio_pin_configure_dt(&sensor1, GPIO_INPUT);
     if (ret != 0) {
         printk("Erro %d ao configurar sensor1\n", ret);
@@ -84,7 +93,7 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
         printk("Erro %d ao configurar sensor2\n", ret);
         return;
     }
-    // Configura interrupção de borda de subida
+    
     ret = gpio_pin_interrupt_configure_dt(&sensor1, GPIO_INT_EDGE_RISING);
     if (ret != 0) {
         printk("Erro %d ao configurar interrupção sensor1\n", ret);
@@ -95,7 +104,7 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
         printk("Erro %d ao configurar interrupção sensor2\n", ret);
         return;
     }
-    // Registra callbacks
+    
     gpio_init_callback(&sensor1_cb_data, sensor1_triggered, BIT(sensor1.pin));
     gpio_add_callback(sensor1.port, &sensor1_cb_data);
     gpio_init_callback(&sensor2_cb_data, sensor2_triggered, BIT(sensor2.pin));
@@ -106,6 +115,8 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
 
     static uint32_t event_id = 0;
 
+
+    // TODO: não usar polling
     while (1) {
         if (sensor1_activated && sensor2_activated) {
             uint32_t dticks = timestamp_sensor2 - timestamp_sensor1;
@@ -131,7 +142,7 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
             sensor1_activated = false;
             sensor2_activated = false;
         }
-        k_msleep(10);
+        k_msleep(100);
     }
 }
 

@@ -9,7 +9,6 @@ LOG_MODULE_REGISTER(main_thread);
 #define MAIN_THREAD_STACK_SIZE 1024
 #define MAIN_THREAD_PRIORITY 1
 
-// Validação de placa Mercosul (BR, AR, PY)
 static bool validar_placa_mercosul(const char *placa) {
     if (!placa) return false;
 
@@ -58,14 +57,11 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
 
     LOG_INF("Thread principal executando...");
     printf("Thread principal executando...\n");
+    // TODO: usar observer (message subscriber, zbus_sub_wait_msg)
     while (1) {
         int ret = zbus_chan_read(&velocidade_chan, &evento, K_FOREVER);
         if (ret == 0) {
-            #ifdef CONFIG_RADAR_SPEED_LIMIT_KMH
-            float limite = CONFIG_RADAR_SPEED_LIMIT_KMH;
-            #else
-            float limite = 60.0f;
-            #endif
+            const float limite = IS_ENABLED(CONFIG_RADAR_SPEED_LIMIT_KMH) ? CONFIG_RADAR_SPEED_LIMIT_KMH : 60.0f;
 
             if (evento.event_id != last_event_id && evento.velocidade_kmh > limite) {
                 last_event_id = evento.event_id;
