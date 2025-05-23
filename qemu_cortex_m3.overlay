@@ -1,6 +1,7 @@
 #include <zephyr/dt-bindings/gpio/gpio.h>
 
 / {
+	
 	aliases {
 		sw0 = &front_button;
 		sw1 = &back_button;
@@ -17,6 +18,19 @@
 			gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
 		};
 	};
+
+	chosen {
+		zephyr,display = &dummy_dc;
+	};
+
+	dummy_dc: dummy_dc {
+		compatible = "zephyr,dummy-dc";
+		height = <240>;
+		width = <320>;
+		
+	};
+
+
 };
 
 &gpio0 {
@@ -34,3 +48,4 @@
 &eth {
     status = "okay";
 };
+

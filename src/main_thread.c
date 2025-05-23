@@ -1,5 +1,6 @@
 #include "camera_service.h"
 #include "sensor.h"
+#include "display.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/zbus/zbus.h>
@@ -77,8 +78,15 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
     const struct zbus_channel *chan;
     uint32_t last_event_id = 0;
 
+    // Mensagem inicial para o display
+    struct display_data_t display_msg = {
+        .brightness = 100,
+        .contrast = 50,
+        .text = "Thread principal executando..."
+    };
+    zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
     LOG_INF("Thread principal executando...");
-    printf("Thread principal executando...\n");
 
     // TODO [OK]: usar observer (message subscriber, zbus_sub_wait_msg)
     while (1) {
@@ -87,12 +95,15 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
 
             if (evento.event_id != last_event_id && evento.velocidade_kmh > limite) {
                 last_event_id = evento.event_id;
+
+                // Mensagem de infração para o display
+                snprintf(display_msg.text, sizeof(display_msg.text), "Infracao! Acionando camera...");
+                zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                 LOG_INF("\t- Infração detectada! Acionando câmera...");
-                printf("\t- Infração detectada! Acionando câmera...\n");
                 int err = camera_api_capture(K_NO_WAIT);
                 if (err) {
                     LOG_ERR("Falha ao acionar câmera via ZBUS!");
-                    printf("Falha ao acionar câmera via ZBUS!\n");
                 } else {
                     // Espera resposta da câmera
                     struct msg_camera_evt evt;
@@ -101,24 +112,38 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
 
                     if (evt_ret == 0) {
                         if (evt.type == MSG_CAMERA_EVT_TYPE_DATA && evt.captured_data) {
-                            printf("\t- Camera: Placa capturada: %s\n", evt.captured_data->plate);
+                            // Envia placa capturada para o display
+                            snprintf(display_msg.text, sizeof(display_msg.text), "Placa: %s", evt.captured_data->plate);
+                            zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                             LOG_INF("\t- Camera: Placa capturada: %s", evt.captured_data->plate);
+
                             if (validar_placa_mercosul(evt.captured_data->plate, padrao)) {
-                                printf("\t- Placa válida (%s)\n", padrao);
+                                snprintf(display_msg.text, sizeof(display_msg.text), "Placa valida (%s)", padrao);
+                                zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                                 LOG_INF("\t- Placa válida (%s)", padrao);
                             } else {
-                                printf("\t- Placa inválida!\n");
+                                snprintf(display_msg.text, sizeof(display_msg.text), "Placa invalida!");
+                                zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                                 LOG_WRN("\t- Placa inválida!");
                             }
                         } else if (evt.type == MSG_CAMERA_EVT_TYPE_ERROR) {
-                            printf("\t- Camera: Erro ao capturar imagem, code: %d\n", evt.error_code);
+                            snprintf(display_msg.text, sizeof(display_msg.text), "Camera erro: %d", evt.error_code);
+                            zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                             LOG_ERR("\t- Camera: Erro ao capturar imagem, code: %d", evt.error_code);
                         } else {
-                            printf("\t- Camera: Evento desconhecido\n");
+                            snprintf(display_msg.text, sizeof(display_msg.text), "Camera: Evento desconhecido");
+                            zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                             LOG_WRN("\t- Camera: Evento desconhecido");
                         }
                     } else {
-                        printf("\t- Camera: Nenhuma resposta recebida\n");
+                        snprintf(display_msg.text, sizeof(display_msg.text), "Camera: Sem resposta");
+                        zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
                         LOG_WRN("\t- Camera: Nenhuma resposta recebida");
                     }
                 }
