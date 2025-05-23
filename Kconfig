@@ -2,6 +2,13 @@ menu "Zephyr"
   source "Kconfig.zephyr"
 endmenu
 
+config DUMMY_DISPLAY
+	bool "Dummy display driver"
+	default y
+	depends on DT_HAS_ZEPHYR_DUMMY_DC_ENABLED
+	help
+	  Enable dummy display driver compliant with display driver API.
+
 menu "dev"
   config SIM_CAR_PASSAGE
       bool "Simular passagem de carro"

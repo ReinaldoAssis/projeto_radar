@@ -1,5 +1,6 @@
 #include "sensor.h"
-#include "camera_service.h" // Adicionar para acesso à API da câmera"
+#include "camera_service.h"
+#include "display.h"
 
 #include <stdio.h>
 #include <zephyr/kernel.h>
@@ -8,31 +9,19 @@
 #include <string.h>
 #include <zephyr/drivers/gpio/gpio_emul.h>
 #include <zephyr/random/random.h>
+#include <zephyr/drivers/auxdisplay.h>
+#include <zephyr/device.h>
 
 LOG_MODULE_REGISTER(system);
 
-#define DISPLAY_THREAD_STACK_SIZE 1024
 #define MAIN_THREAD_STACK_SIZE 1024
 #define NETWORK_THREAD_STACK_SIZE 1024
 
-#define DISPLAY_THREAD_PRIORITY 4
-#define MAIN_THREAD_PRIORITY 5
+#define MAIN_THREAD_PRIORITY 2
 #define NETWORK_THREAD_PRIORITY 4
 
-K_THREAD_STACK_DEFINE(display_stack, DISPLAY_THREAD_STACK_SIZE);
 K_THREAD_STACK_DEFINE(main_stack, MAIN_THREAD_STACK_SIZE);
 K_THREAD_STACK_DEFINE(network_stack, NETWORK_THREAD_STACK_SIZE);
-
-struct k_thread display_thread_data;
-struct k_thread main_thread_data;
-struct k_thread network_thread_data;
-
-static void display_thread(void *arg1, void *arg2, void *arg3) {
-    while (1) {
-        // print_log("Thread de Display executando...");
-        k_msleep(1000);
-    }
-}
 
 static void network_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
@@ -92,7 +81,9 @@ void test_sntp(void)
 
 void sim_car_pass(void)
 {
-    int random_delay = sys_rand32_get() % 300 + 100;
+    // int random_delay = sys_rand32_get() % 300 + 100;
+    int random_delay = 1;
+
     printk("Delay aleatório: %d ms\n", random_delay);
 
     print_log("Carro passando...");
@@ -113,14 +104,22 @@ void sim_car_pass(void)
 int main(void) {
     k_msleep(1000); // Aguarda um pouco para garantir que as threads estejam prontas
     print_log("Sistema inicializado!");
+    uint8_t sim_times = 0;
 
     while (1) {
         if (CONFIG_SIM_CAR_PASSAGE) {
-            sim_car_pass();
+            if (sim_times < 10) sim_car_pass();
+            sim_times++;
         }
         #if CONFIG_TEST_SNTP
         test_sntp();
         #endif
+
+        if (sim_times >= 5) {
+            LOG_INF("Simulação concluída.");
+            break;
+        }
+
         k_msleep(500);
     }
 }
