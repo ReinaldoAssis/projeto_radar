@@ -10,7 +10,6 @@
 
 #include <zephyr/ztest.h>
 #include <zephyr/zbus/zbus.h>
-#include "canais.h"             /* For Zbus channel definitions */
 
 /* External Zbus channel for speed data. */
 extern struct zbus_channel velocidade_chan;

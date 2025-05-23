@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include <zephyr/drivers/gpio.h>
+#include <zephyr/zbus/zbus.h>
 
 struct sensor_result {
     uint32_t timestamp_sensor1;
@@ -18,5 +19,12 @@ void sensor_thread(void *arg1, void *arg2, void *arg3);
 
 // Função de cálculo de velocidade (pode ser usada em testes)
 float calcular_velocidade_kmh(uint32_t t1_ms, uint32_t t2_ms, float distancia_m);
+
+struct velocidade_evento_t {
+    float velocidade_kmh;
+    uint32_t event_id;
+};
+
+ZBUS_CHAN_DECLARE(velocidade_chan);
 
 #endif

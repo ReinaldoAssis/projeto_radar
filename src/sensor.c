@@ -1,5 +1,4 @@
 #include "sensor.h"
-#include "canais.h"
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/drivers/gpio.h>
@@ -10,6 +9,9 @@
 #include <stdio.h> // Incluído para usar printf
 
 LOG_MODULE_REGISTER(sensor);
+
+ZBUS_CHAN_DEFINE(velocidade_chan, struct velocidade_evento_t, NULL, NULL, ZBUS_OBSERVERS_EMPTY, ZBUS_MSG_INIT(.velocidade_kmh = 0.0f, .event_id = 0));
+
 
 // Definição dos sensores como GPIOs (aliases sw0 e sw1)
 #define SENSOR1_NODE DT_ALIAS(sw0)

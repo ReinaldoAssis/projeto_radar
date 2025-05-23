@@ -1,5 +1,4 @@
 #include "sensor.h"
-#include "canais.h"
 #include "camera_service.h" // Adicionar para acesso à API da câmera"
 
 #include <stdio.h>

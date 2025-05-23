@@ -1,9 +1,10 @@
+#include "camera_service.h"
+#include "sensor.h"
+
 #include <zephyr/kernel.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
 #include <stdio.h>
-#include "canais.h" // struct velocidade_evento_t já está aqui
-#include "camera_service.h"
 LOG_MODULE_REGISTER(main_thread);
 
 #define MAIN_THREAD_STACK_SIZE 1024
