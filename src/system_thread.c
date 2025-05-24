@@ -6,10 +6,10 @@
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
 #include <stdio.h>
-LOG_MODULE_REGISTER(main_thread);
+LOG_MODULE_REGISTER(system_thread);
 
-#define MAIN_THREAD_STACK_SIZE 1024
-#define MAIN_THREAD_PRIORITY 1
+#define SYSTEM_THREAD_STACK_SIZE 1024
+#define SYSTEM_THREAD_PRIORITY 1
 
 
 ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
@@ -73,7 +73,7 @@ static bool validar_placa_mercosul(const char *placa, const char *padrao) {
     return false;
 }
 
-static void main_thread(void *arg1, void *arg2, void *arg3) {
+static void system_thread(void *arg1, void *arg2, void *arg3) {
     struct velocidade_evento_t evento;
     const struct zbus_channel *chan;
     uint32_t last_event_id = 0;
@@ -152,4 +152,4 @@ static void main_thread(void *arg1, void *arg2, void *arg3) {
     }
 }
 
-K_THREAD_DEFINE(main_thread_id, MAIN_THREAD_STACK_SIZE, main_thread, NULL, NULL, NULL, MAIN_THREAD_PRIORITY, 0, 0);
+K_THREAD_DEFINE(system_thread_id, SYSTEM_THREAD_STACK_SIZE, system_thread, NULL, NULL, NULL, SYSTEM_THREAD_PRIORITY, 0, 0);
