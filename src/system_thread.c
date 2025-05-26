@@ -1,21 +1,25 @@
+#ifndef CONFIG_ZTEST
 #include "camera_service.h"
+#endif 
+
 #include "sensor.h"
 #include "display.h"
+#include "system_thread.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/zbus/zbus.h>
 #include <zephyr/logging/log.h>
 #include <stdio.h>
+#include <ctype.h>
+
 LOG_MODULE_REGISTER(system_thread);
 
 #define SYSTEM_THREAD_STACK_SIZE 1024
 #define SYSTEM_THREAD_PRIORITY 1
 
 
-ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
-ZBUS_CHAN_ADD_OBS(velocidade_chan, main_subscriber, 3);
 
-static bool validar_placa_mercosul(const char *placa, const char *padrao) {
+bool validar_placa_mercosul(const char *placa, char *padrao) {
     if (!placa) return false;
 
     // Remove espaços da string (cria uma cópia sem espaços)
@@ -29,49 +33,87 @@ static bool validar_placa_mercosul(const char *placa, const char *padrao) {
 
     size_t len = strlen(placa_sem_espacos);
 
-    // Brasil: LLLNLNN (ex: BRA1B23)
+    // Brasil: LLL N L NN (ex: BRA1B23)
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && isalpha(placa_sem_espacos[2]) &&
         isdigit(placa_sem_espacos[3]) &&
         isalpha(placa_sem_espacos[4]) &&
         isdigit(placa_sem_espacos[5]) && isdigit(placa_sem_espacos[6])) {
         
-        // retorna o tipo de padrão (LLLNLNN)
         if (padrao != NULL){
-            strcpy(padrao, "LLLNLNN");
+            strcpy(padrao, PLACA_BRASIL);
         }
-
         return true;
     }
 
-    // Argentina/Paraguai: LLNNNLL (ex: AB123CD)
+    // Argentina: LL NNN LL (ex: AB123CD)
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) &&
         isdigit(placa_sem_espacos[2]) && isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) &&
         isalpha(placa_sem_espacos[5]) && isalpha(placa_sem_espacos[6])) {
 
-        // retorna o tipo de padrão (LLNNNLL)
         if (padrao != NULL){
-            strcpy(padrao, "LLNNNLL");
+            strcpy(padrao, PLACA_ARGENTINA);
         }
         return true;
     }
 
-    // Argentina alternativa: LLLNNLL (ex: ABC12DE)
+    // Paraguai Carro: LLLL NNN (ex: ABCD123)
     if (len == 7 &&
-        isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && isalpha(placa_sem_espacos[2]) &&
-        isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) &&
+        isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && 
+        isalpha(placa_sem_espacos[2]) && isalpha(placa_sem_espacos[3]) &&
+        isdigit(placa_sem_espacos[4]) && isdigit(placa_sem_espacos[5]) && isdigit(placa_sem_espacos[6])) {
+        
+        if (padrao != NULL){
+            strcpy(padrao, PLACA_PARAGUAI_CARRO);
+        }
+        return true;
+    }
+
+    // Paraguai Moto: NNN LLLL (ex: 123ABCD)
+    if (len == 7 &&
+        isdigit(placa_sem_espacos[0]) && isdigit(placa_sem_espacos[1]) && isdigit(placa_sem_espacos[2]) &&
+        isalpha(placa_sem_espacos[3]) && isalpha(placa_sem_espacos[4]) && 
         isalpha(placa_sem_espacos[5]) && isalpha(placa_sem_espacos[6])) {
         
-        // retorna o tipo de padrão (LLLNNLL)
         if (padrao != NULL){
-            strcpy(padrao, "LLLNNLL");
+            strcpy(padrao, PLACA_PARAGUAI_MOTO);
+        }
+        return true;
+    }
+
+    // Uruguai: LLL NNNN (ex: ABC1234)
+    if (len == 7 &&
+        isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && isalpha(placa_sem_espacos[2]) &&
+        isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) && 
+        isdigit(placa_sem_espacos[5]) && isdigit(placa_sem_espacos[6])) {
+        
+        if (padrao != NULL){
+            strcpy(padrao, PLACA_URUGUAI);
+        }
+        return true;
+    }
+
+    // Bolivia: LL NNNNN (ex: AB12345)
+    if (len == 7 &&
+        isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) &&
+        isdigit(placa_sem_espacos[2]) && isdigit(placa_sem_espacos[3]) && 
+        isdigit(placa_sem_espacos[4]) && isdigit(placa_sem_espacos[5]) && isdigit(placa_sem_espacos[6])) {
+        
+        if (padrao != NULL){
+            strcpy(padrao, PLACA_BOLIVIA);
         }
         return true;
     }
 
     return false;
 }
+
+
+#ifndef CONFIG_ZTEST
+
+ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
+ZBUS_CHAN_ADD_OBS(velocidade_chan, main_subscriber, 3);
 
 static void system_thread(void *arg1, void *arg2, void *arg3) {
     struct velocidade_evento_t evento;
@@ -108,7 +150,7 @@ static void system_thread(void *arg1, void *arg2, void *arg3) {
                     // Espera resposta da câmera
                     struct msg_camera_evt evt;
                     int evt_ret = zbus_chan_read(&chan_camera_evt, &evt, K_MSEC(500));
-                    char padrao[8] = "";
+                    char padrao[32] = "";
 
                     if (evt_ret == 0) {
                         if (evt.type == MSG_CAMERA_EVT_TYPE_DATA && evt.captured_data) {
@@ -153,3 +195,5 @@ static void system_thread(void *arg1, void *arg2, void *arg3) {
 }
 
 K_THREAD_DEFINE(system_thread_id, SYSTEM_THREAD_STACK_SIZE, system_thread, NULL, NULL, NULL, SYSTEM_THREAD_PRIORITY, 0, 0);
+
+#endif
