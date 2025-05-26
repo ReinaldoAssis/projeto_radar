@@ -19,8 +19,6 @@ K_THREAD_STACK_DEFINE(display_stack, DISPLAY_THREAD_STACK_SIZE);
 ZBUS_MSG_SUBSCRIBER_DEFINE(display_subscriber);
 ZBUS_CHAN_ADD_OBS(display_chan, display_subscriber, 3);
 
-// struct k_thread display_thread_data;
-
 static void display_thread(void *arg1, void *arg2, void *arg3) {
     int rc;
     const struct device *const dev = DEVICE_DT_GET(DT_NODELABEL(dummy_dc));

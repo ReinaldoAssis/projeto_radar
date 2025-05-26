@@ -22,8 +22,11 @@ LOG_MODULE_REGISTER(system_thread);
 bool validar_placa_mercosul(const char *placa, char *padrao) {
     if (!placa) return false;
 
-    // Remove espaços da string (cria uma cópia sem espaços)
-    char placa_sem_espacos[16]; // tamanho suficiente para placa + \0
+    /*
+        The snippet below removes spaces from the input plate string
+        so that we can validate the plate format without worrying about them.
+    */
+    char placa_sem_espacos[16];
     int j = 0;
     for (int i = 0; placa[i] != '\0' && j < (int)(sizeof(placa_sem_espacos) - 1); i++) {
         if (placa[i] != ' ')
@@ -33,7 +36,9 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
 
     size_t len = strlen(placa_sem_espacos);
 
-    // Brasil: LLL N L NN (ex: BRA1B23)
+    /*
+        Brasil: LLL N L NN (ex: BRA1B23)
+    */
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && isalpha(placa_sem_espacos[2]) &&
         isdigit(placa_sem_espacos[3]) &&
@@ -46,7 +51,9 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
         return true;
     }
 
-    // Argentina: LL NNN LL (ex: AB123CD)
+    /*
+        Argentina: LL NNN LL (ex: AB123CD)
+    */
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) &&
         isdigit(placa_sem_espacos[2]) && isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) &&
@@ -58,7 +65,9 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
         return true;
     }
 
-    // Paraguai Carro: LLLL NNN (ex: ABCD123)
+    /*
+        Paraguai Carro: LLLL NNN (ex: ABCD123)
+    */
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && 
         isalpha(placa_sem_espacos[2]) && isalpha(placa_sem_espacos[3]) &&
@@ -70,7 +79,9 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
         return true;
     }
 
-    // Paraguai Moto: NNN LLLL (ex: 123ABCD)
+    /*
+        Paraguai Moto: NNN LLLL (ex: 123ABCD)
+    */
     if (len == 7 &&
         isdigit(placa_sem_espacos[0]) && isdigit(placa_sem_espacos[1]) && isdigit(placa_sem_espacos[2]) &&
         isalpha(placa_sem_espacos[3]) && isalpha(placa_sem_espacos[4]) && 
@@ -82,7 +93,9 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
         return true;
     }
 
-    // Uruguai: LLL NNNN (ex: ABC1234)
+    /*
+        Uruguai: LLL NNNN (ex: ABC1234)
+    */
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) && isalpha(placa_sem_espacos[2]) &&
         isdigit(placa_sem_espacos[3]) && isdigit(placa_sem_espacos[4]) && 
@@ -94,7 +107,9 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
         return true;
     }
 
-    // Bolivia: LL NNNNN (ex: AB12345)
+    /*
+        Bolivia: LL NNNNN (ex: AB12345)
+    */
     if (len == 7 &&
         isalpha(placa_sem_espacos[0]) && isalpha(placa_sem_espacos[1]) &&
         isdigit(placa_sem_espacos[2]) && isdigit(placa_sem_espacos[3]) && 
@@ -120,17 +135,19 @@ static void system_thread(void *arg1, void *arg2, void *arg3) {
     const struct zbus_channel *chan;
     uint32_t last_event_id = 0;
 
-    // Mensagem inicial para o display
+    /*
+        Display inicial message
+    */
     struct display_data_t display_msg = {
         .brightness = 100,
         .contrast = 50,
         .text = "Thread principal executando..."
     };
+
     zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
     LOG_INF("Thread principal executando...");
 
-    // TODO [OK]: usar observer (message subscriber, zbus_sub_wait_msg)
     while (1) {
         if (!zbus_sub_wait_msg(&main_subscriber, &chan, &evento, K_FOREVER)) {
             const float limite = IS_ENABLED(CONFIG_RADAR_SPEED_LIMIT_KMH) ? CONFIG_RADAR_SPEED_LIMIT_KMH : 60.0f;
@@ -138,38 +155,40 @@ static void system_thread(void *arg1, void *arg2, void *arg3) {
             if (evento.event_id != last_event_id && evento.velocidade_kmh > limite) {
                 last_event_id = evento.event_id;
 
-                // Mensagem de infração para o display
+                /*
+                    Sending violation message to display
+                */
                 snprintf(display_msg.text, sizeof(display_msg.text), "Infracao! Acionando camera...");
                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
-                LOG_INF("\t- Infração detectada! Acionando câmera...");
-                int err = camera_api_capture(K_NO_WAIT);
+                int err = camera_api_capture(K_MSEC(100));
                 if (err) {
+
                     LOG_ERR("Falha ao acionar câmera via ZBUS!");
+
                 } else {
-                    // Espera resposta da câmera
+
+                    /*
+                        Waits up to 500ms for camera event
+                    */
                     struct msg_camera_evt evt;
                     int evt_ret = zbus_chan_read(&chan_camera_evt, &evt, K_MSEC(500));
                     char padrao[32] = "";
 
                     if (evt_ret == 0) {
                         if (evt.type == MSG_CAMERA_EVT_TYPE_DATA && evt.captured_data) {
-                            // Envia placa capturada para o display
+
                             snprintf(display_msg.text, sizeof(display_msg.text), "Placa: %s", evt.captured_data->plate);
                             zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
-                            // LOG_INF("\t- Camera: Placa capturada: %s", evt.captured_data->plate);
-
                             if (validar_placa_mercosul(evt.captured_data->plate, padrao)) {
+
                                 snprintf(display_msg.text, sizeof(display_msg.text), "Placa valida (%s)", padrao);
                                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
-                                // LOG_INF("\t- Placa válida (%s)", padrao);
                             } else {
                                 snprintf(display_msg.text, sizeof(display_msg.text), "Placa invalida!");
                                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
-
-                                LOG_WRN("\t- Placa inválida!");
                             }
                         } else if (evt.type == MSG_CAMERA_EVT_TYPE_ERROR) {
                             snprintf(display_msg.text, sizeof(display_msg.text), "Camera erro: %d", evt.error_code);

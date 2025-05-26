@@ -6,11 +6,10 @@
 #include <zephyr/logging/log.h>
 #include <inttypes.h>
 #include <zephyr/zbus/zbus.h>
-#include <stdio.h> // Incluído para usar printf
+#include <stdio.h> 
 
 LOG_MODULE_REGISTER(sensor);
 
-// Definição dos sensores como GPIOs (aliases sw0 e sw1)
 #define SENSOR1_NODE DT_ALIAS(sw0)
 #define SENSOR2_NODE DT_ALIAS(sw1)
 
@@ -139,8 +138,6 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
 
     static uint32_t event_id = 0;
 
-
-    // TODO [OK]: não usar polling
     while (1) {
         struct sensor_evento_t evento;
         const struct zbus_channel *chan;
@@ -148,28 +145,28 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
         if(!zbus_sub_wait_msg(&sensor_subscriber, &chan, &evento, K_FOREVER)) {
 
 
-//             float limite = 60.0f;
-// #ifdef CONFIG_RADAR_SPEED_LIMIT_KMH
-//             limite = CONFIG_RADAR_SPEED_LIMIT_KMH;
-// #endif
-
             float distancia_m = 1.0f;
 #ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
             distancia_m = CONFIG_RADAR_SENSOR_DISTANCE_MM / 1000.0f;
 #endif
 
             if (evento.timestamp_sensor1 != 0 && evento.timestamp_sensor2 != 0) {
-                // Calcular velocidade
                 float velocidade_kmh = 0.0f;
                 int err = calcular_velocidade_kmh(evento.timestamp_sensor1, evento.timestamp_sensor2, distancia_m, &velocidade_kmh);
 
-                // Imprimir velocidade
+                /*
+                    Only log velocity with printf if not in ztest mode
+                */
 #ifndef CONFIG_ZTEST
                 uint32_t dticks = evento.timestamp_sensor2 - evento.timestamp_sensor1;
                 printf("\t\t   <inf> [dist. %.2f] Tempo: %u ms, Velocidade: %.2f km/h\n", (double)distancia_m, dticks, (double)velocidade_kmh);
 #endif
                 if (err == 0) {
-                    // Publicar evento de velocidade
+                    
+                    /*
+                        Publish the speed event to the velocidade_chan channel
+                        with the calculated speed and a unique event ID.
+                    */
                     struct velocidade_evento_t vel_evento = {
                         .velocidade_kmh = velocidade_kmh,
                         .event_id = ++event_id

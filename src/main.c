@@ -25,7 +25,6 @@ K_THREAD_STACK_DEFINE(network_stack, NETWORK_THREAD_STACK_SIZE);
 
 static void network_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
-        // LOG_INF("Thread de Rede executando...");
         k_msleep(1000);
     }
 }
@@ -78,13 +77,13 @@ void sim_car_pass(void)
 
     LOG_INF("Carro passando...");
     gpio_emul_input_set(sensor1.port, sensor1.pin, 1);
-    k_msleep(2); // Garante pulso detectável
+    k_msleep(2);
     gpio_emul_input_set(sensor1.port, sensor1.pin, 0);
 
-    k_msleep(random_delay); // Aguarda antes do segundo sensor
+    k_msleep(random_delay);
 
     gpio_emul_input_set(sensor2.port, sensor2.pin, 1);
-    k_msleep(2); // Garante pulso detectável
+    k_msleep(2);
     gpio_emul_input_set(sensor2.port, sensor2.pin, 0);
 
     LOG_INF("Carro passou!");
@@ -92,7 +91,12 @@ void sim_car_pass(void)
 }
 
 int main(void) {
-    k_msleep(1000); // Aguarda um pouco para garantir que as threads estejam prontas
+
+    /*
+    Waits for the system to be ready before starting simulation.
+    */
+    k_msleep(1000);
+
     LOG_INF("Sistema inicializado!");
     uint8_t sim_times = 0;
 
