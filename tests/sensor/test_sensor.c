@@ -80,7 +80,7 @@ ZTEST(sensor, test_dist_negativa) {
     uint32_t t2 = 2000; /* ms */
     float v = 123.0f;
     int err = calcular_velocidade_kmh(t1, t2, distancia_m, &v);
-    zassert_equal(err, 0, "Erro inesperado no cálculo");
+    zassert_not_equal(err, 0, "Erro inesperado no cálculo");
     zassert_equal(v, 0.0f, "Velocidade deve ser 0.0 km/h");
 }
 

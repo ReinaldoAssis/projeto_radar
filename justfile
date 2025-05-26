@@ -32,13 +32,13 @@ run_sensor_tests:
     rm -rf twister-out
     west twister -p qemu_cortex_m3 -T tests/sensor
 
-run_integration_tests:
+run_validar_placa_tests:
     rm -rf twister-out
-    west twister -p qemu_cortex_m3 -T tests/infracao
+    west twister -p qemu_cortex_m3 -T tests/validar_placa -Wno-unused-function
 
 run_all_tests:
     rm -rf twister-out
-    just run_integration_tests
+    just run_validar_placa_tests
     just run_sensor_tests
 
 flash:

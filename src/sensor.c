@@ -6,11 +6,10 @@
 #include <zephyr/logging/log.h>
 #include <inttypes.h>
 #include <zephyr/zbus/zbus.h>
-#include <stdio.h> // Incluído para usar printf
+#include <stdio.h> 
 
 LOG_MODULE_REGISTER(sensor);
 
-// Definição dos sensores como GPIOs (aliases sw0 e sw1)
 #define SENSOR1_NODE DT_ALIAS(sw0)
 #define SENSOR2_NODE DT_ALIAS(sw1)
 
@@ -42,7 +41,7 @@ static void sensor1_triggered(const struct device *dev, struct gpio_callback *cb
     if (!sensor1_activated) {
         timestamp_sensor1 = k_uptime_get_32();
         sensor1_activated = true;
-        printk("Sensor 1 ativado em %" PRIu32 "\n", timestamp_sensor1);
+        LOG_INF("Sensor 1 ativado em %" PRIu32, timestamp_sensor1);
     }
 }
 
@@ -52,7 +51,7 @@ static void sensor2_triggered(const struct device *dev, struct gpio_callback *cb
     if (!sensor2_activated && sensor1_activated) {
         timestamp_sensor2 = k_uptime_get_32();
         sensor2_activated = true;
-        printk("Sensor 2 ativado em %" PRIu32 "\n", timestamp_sensor2);
+        LOG_INF("Sensor 2 ativado em %" PRIu32, timestamp_sensor2);
 
         struct sensor_evento_t evento = {
             .timestamp_sensor1 = timestamp_sensor1,
@@ -104,29 +103,29 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
     int ret;
     
     if (!device_is_ready(sensor1.port) || !device_is_ready(sensor2.port)) {
-        printk("Erro: GPIO dos sensores não está pronto\n");
+        LOG_ERR("GPIO dos sensores não está pronto");
         return;
     }
     
     ret = gpio_pin_configure_dt(&sensor1, GPIO_INPUT);
     if (ret != 0) {
-        printk("Erro %d ao configurar sensor1\n", ret);
+        LOG_ERR("Erro %d ao configurar sensor1", ret);
         return;
     }
     ret = gpio_pin_configure_dt(&sensor2, GPIO_INPUT);
     if (ret != 0) {
-        printk("Erro %d ao configurar sensor2\n", ret);
+        LOG_ERR("Erro %d ao configurar sensor2", ret);
         return;
     }
     
     ret = gpio_pin_interrupt_configure_dt(&sensor1, GPIO_INT_EDGE_RISING);
     if (ret != 0) {
-        printk("Erro %d ao configurar interrupção sensor1\n", ret);
+        LOG_ERR("Erro %d ao configurar interrupção sensor1", ret);
         return;
     }
     ret = gpio_pin_interrupt_configure_dt(&sensor2, GPIO_INT_EDGE_RISING);
     if (ret != 0) {
-        printk("Erro %d ao configurar interrupção sensor2\n", ret);
+        LOG_ERR("Erro %d ao configurar interrupção sensor2", ret);
         return;
     }
     
@@ -135,13 +134,10 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
     gpio_init_callback(&sensor2_cb_data, sensor2_triggered, BIT(sensor2.pin));
     gpio_add_callback(sensor2.port, &sensor2_cb_data);
 
-    printk("Thread de Sensores inicializada (aliases sw0 e sw1)\n");
     LOG_INF("Thread de Sensores inicializada (aliases sw0 e sw1)");
 
     static uint32_t event_id = 0;
 
-
-    // TODO [OK]: não usar polling
     while (1) {
         struct sensor_evento_t evento;
         const struct zbus_channel *chan;
@@ -149,28 +145,28 @@ void sensor_thread(void *arg1, void *arg2, void *arg3) {
         if(!zbus_sub_wait_msg(&sensor_subscriber, &chan, &evento, K_FOREVER)) {
 
 
-            float limite = 60.0f;
-#ifdef CONFIG_RADAR_SPEED_LIMIT_KMH
-            limite = CONFIG_RADAR_SPEED_LIMIT_KMH;
-#endif
-
             float distancia_m = 1.0f;
 #ifdef CONFIG_RADAR_SENSOR_DISTANCE_MM
             distancia_m = CONFIG_RADAR_SENSOR_DISTANCE_MM / 1000.0f;
 #endif
 
             if (evento.timestamp_sensor1 != 0 && evento.timestamp_sensor2 != 0) {
-                // Calcular velocidade
                 float velocidade_kmh = 0.0f;
                 int err = calcular_velocidade_kmh(evento.timestamp_sensor1, evento.timestamp_sensor2, distancia_m, &velocidade_kmh);
 
-                // Imprimir velocidade
+                /*
+                    Only log velocity with printf if not in ztest mode
+                */
+#ifndef CONFIG_ZTEST
                 uint32_t dticks = evento.timestamp_sensor2 - evento.timestamp_sensor1;
-                printf("[dist. %.2f] Tempo: %u ms, Velocidade: %.2f km/h\n", distancia_m, dticks, velocidade_kmh);
-                LOG_INF("[dist. %.2f] Tempo: %u ms, Velocidade: %.2f km/h", distancia_m, dticks, velocidade_kmh);
-
+                printf("\t\t   <inf> [dist. %.2f] Tempo: %u ms, Velocidade: %.2f km/h\n", (double)distancia_m, dticks, (double)velocidade_kmh);
+#endif
                 if (err == 0) {
-                    // Publicar evento de velocidade
+                    
+                    /*
+                        Publish the speed event to the velocidade_chan channel
+                        with the calculated speed and a unique event ID.
+                    */
                     struct velocidade_evento_t vel_evento = {
                         .velocidade_kmh = velocidade_kmh,
                         .event_id = ++event_id
