@@ -72,8 +72,7 @@ void test_sntp(void)
 
 void sim_car_pass(void)
 {
-    // int random_delay = sys_rand32_get() % 300 + 100;
-    int random_delay = 1;
+    int random_delay = sys_rand32_get() % 300 + 100;
 
     LOG_INF("Delay aleatório: %d ms", random_delay);
 
