@@ -34,7 +34,7 @@ run_sensor_tests:
 
 run_validar_placa_tests:
     rm -rf twister-out
-    west twister -p qemu_cortex_m3 -T tests/validar_placa -Wno-unused-function
+    west twister -p qemu_cortex_m3 -T tests/validar_placa
 
 run_all_tests:
     rm -rf twister-out
