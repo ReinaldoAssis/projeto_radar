@@ -130,7 +130,7 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
 ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
 ZBUS_CHAN_ADD_OBS(velocidade_chan, main_subscriber, 3);
 
-static void system_thread(void *arg1, void *arg2, void *arg3) {
+void system_thread(void *arg1, void *arg2, void *arg3) {
     struct velocidade_evento_t evento;
     const struct zbus_channel *chan;
     uint32_t last_event_id = 0;
@@ -161,7 +161,7 @@ static void system_thread(void *arg1, void *arg2, void *arg3) {
                 snprintf(display_msg.text, sizeof(display_msg.text), "Infracao! Acionando camera...");
                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
-                int err = camera_api_capture(K_MSEC(100));
+                int err = camera_api_capture(K_MSEC(200));
                 if (err) {
 
                     LOG_ERR("Falha ao acionar câmera via ZBUS!");
@@ -191,10 +191,12 @@ static void system_thread(void *arg1, void *arg2, void *arg3) {
                                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
                             }
                         } else if (evt.type == MSG_CAMERA_EVT_TYPE_ERROR) {
+
                             snprintf(display_msg.text, sizeof(display_msg.text), "Camera erro: %d", evt.error_code);
                             zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
                             LOG_ERR("\t- Camera: Erro ao capturar imagem, code: %d", evt.error_code);
+                            
                         } else {
                             snprintf(display_msg.text, sizeof(display_msg.text), "Camera: Evento desconhecido");
                             zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);

@@ -8,7 +8,7 @@
 #define PLACA_URUGUAI       "Uruguai [LLL NNNN]"
 #define PLACA_BOLIVIA       "Bolivia [LL NNNNN]"
 
-static void system_thread(void *arg1, void *arg2, void *arg3);
+void system_thread(void *arg1, void *arg2, void *arg3);
 bool validar_placa_mercosul(const char *placa, char *padrao);
 
 #endif // SYSTEM_THREAD_H
