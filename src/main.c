@@ -23,6 +23,16 @@ LOG_MODULE_REGISTER(system);
 K_THREAD_STACK_DEFINE(system_stack, SYSTEM_THREAD_STACK_SIZE);
 K_THREAD_STACK_DEFINE(network_stack, NETWORK_THREAD_STACK_SIZE);
 
+/*
+    NTP to UTC Implementation by Matt
+    at https://stackoverflow.com/questions/5206857/convert-ntp-timestamp-to-utc
+
+    NTP_TIMESTAMP_DIFF - The difference in seconds between the NTP epoch (1900) and the Unix epoch (1970).
+    NTP_MAX_INT_AS_DOUBLE - The maximum value of the fractional part of an NTP timestamp, which is 2^32 - 1.
+*/
+#define NTP_TIMESTAMP_DIFF     (2208988800)
+#define NTP_MAX_INT_AS_DOUBLE  (4294967295.0)
+
 static void network_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
         k_msleep(1000);
@@ -44,23 +54,16 @@ void test_sntp(void)
     rc = sntp_simple(ntp_server, 10000, &ts);
 
     if (rc == 0) {
-        LOG_INF("SNTP request successful.");
-        LOG_INF("Time: %u seconds, %u fraction", ts.seconds, ts.fraction);
-
-        time_t current_time = (time_t)ts.seconds;
-        if (current_time >= 2208988800UL) {
-            current_time -= 2208988800UL;
+        
+        time_t unix_time = (time_t)(ts.seconds - NTP_TIMESTAMP_DIFF);
+        
+        struct tm *tm = gmtime(&unix_time);
+        if (tm) {
+            char time_str[49];
+            strftime(time_str, 48, "[%Y-%m-%d %H:%M:%S]", tm);
+            LOG_INF("Converted time: %s", time_str);
         } else {
-            LOG_WRN("NTP time is before Unix epoch, cannot convert directly.");
-        }
-
-        char buffer[30];
-        struct tm *tm_info = gmtime(&current_time);
-        if (tm_info) {
-            strftime(buffer, sizeof(buffer), "%Y-%m-%d %H:%M:%S UTC", tm_info);
-            LOG_INF("Current UTC time: %s", buffer);
-        } else {
-            LOG_ERR("Failed to convert NTP time to human-readable format.");
+            LOG_ERR("Failed to convert time to struct tm");
         }
 
     } else {
@@ -98,23 +101,20 @@ int main(void) {
     k_msleep(1000);
 
     LOG_INF("Sistema inicializado!");
-    uint8_t sim_times = 0;
+    uint8_t sim_times = 5;
 
     while (1) {
+#ifdef CONFIG_SIM_CAR_PASSAGE
         if (CONFIG_SIM_CAR_PASSAGE) {
-            if (sim_times < 10) sim_car_pass();
+            if (sim_times > 0) sim_car_pass();
 
-            if (sim_times >= 10) {
-                LOG_INF("=========================");
-                LOG_INF("Simulação concluída.");
-                LOG_INF("-------------------------");
-                LOG_INF("Stats: ");
-
+            if (sim_times == 0) {
                 break;
             }
 
-            sim_times++;
+            sim_times--;
         }
+#endif
         #if CONFIG_TEST_SNTP
         test_sntp();
         #endif
