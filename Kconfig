@@ -12,25 +12,25 @@ config DUMMY_DISPLAY
 menu "dev"
   config SIM_CAR_PASSAGE
       bool "Simular passagem de carro"
-      default n
+      default y
       help
         Habilita a simulação de passagem de carro.
 
   config TEST_SNTP
       bool "Testar SNTP"
-      default y
+      default n
       help
         Habilita o teste do SNTP.
 
-  config NET_SAMPLE_SNTP_SERVER_ADDRESS
+  config SNTP_SERVER_ADDRESS
     string "SNTP server address"
     default "a.st1.ntp.br"
 
-  config NET_SAMPLE_SNTP_SERVER_PORT
+  config SNTP_SERVER_PORT
     int "SNTP server port"
     default 123
 
-  config NET_SAMPLE_SNTP_SERVER_TIMEOUT_MS
+  config SNTP_SERVER_TIMEOUT_MS
     int "Duration to wait for response"
     default 1000
 
