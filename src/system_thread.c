@@ -15,7 +15,7 @@
 
 LOG_MODULE_REGISTER(system_thread);
 
-#define SYSTEM_THREAD_STACK_SIZE 1024
+#define SYSTEM_THREAD_STACK_SIZE 2048
 #define SYSTEM_THREAD_PRIORITY 1
 
 
@@ -134,51 +134,6 @@ ZBUS_CHAN_ADD_OBS(velocidade_chan, main_subscriber, 3);
 ZBUS_MSG_SUBSCRIBER_DEFINE(network_system_subscriber);
 ZBUS_CHAN_ADD_OBS(network_chan, network_system_subscriber, 3);
 
-/*
-    @brief Sends an SNTP request and waits for a response.
-    @param tm_brazil Pointer to a struct tm to store the converted time.
-    @param time_str Pointer to a string buffer to store the formatted time.
-    @return 0 on success, negative error code on failure.
-*/
-int request_handler_sntp(struct tm *tm_brazil, char *time_str)
-{
-    struct network_event_t sntp_request = {
-        .type = NETWORK_EVENT_SNTP_REQUEST
-    };
-    
-    int err = zbus_chan_pub(&network_chan, &sntp_request, K_NO_WAIT);
-    if (err) {
-        LOG_ERR("Failed to send SNTP request: %d", err);
-    } else {
-        struct network_event_t network_data;
-        const struct zbus_channel *chan;
-        
-        if (!zbus_sub_wait_msg(&network_system_subscriber, &chan, &network_data, K_MSEC(10000))) {
-            if (network_data.type == NETWORK_EVENT_SNTP_RESPONSE) {
-                if (network_data.sntp_response.error_code == 0) {
-                    time_t current_time = network_data.sntp_response.unix_time;
-                    struct tm *tm_info = gmtime(&current_time);
-                    
-                    if (tm_brazil != NULL) {
-                        *tm_brazil = *tm_info;
-                    }
-                    if (time_str != NULL) {
-                        strcpy(time_str, network_data.sntp_response.time_str);
-                    }
-
-                    return 0;
-
-                } else {
-                    LOG_ERR("SNTP error: %d", network_data.sntp_response.error_code);
-                    return network_data.sntp_response.error_code;
-                }
-            }
-        } else {
-            LOG_WRN("SNTP request timeout");
-            return -ETIMEDOUT;
-        }
-    }
-}
 
 void system_thread(void *arg1, void *arg2, void *arg3) {
     struct velocidade_evento_t evento;
@@ -207,7 +162,7 @@ void system_thread(void *arg1, void *arg2, void *arg3) {
 
                 struct tm tm_brazil;
                 char time_str[49];
-                int req_err = request_handler_sntp(&tm_brazil, time_str);
+                int req_err = get_converted_sntp_time(&tm_brazil, time_str);
  
                 if (req_err) {
                     snprintf(display_msg.text, sizeof(display_msg.text), "Erro SNTP: %d", req_err);
@@ -219,7 +174,7 @@ void system_thread(void *arg1, void *arg2, void *arg3) {
                 /*
                     Sending violation message to display
                 */
-                snprintf(display_msg.text, sizeof(display_msg.text), "[%s] Infracao! Acionando camera...", time_str);
+                snprintf(display_msg.text, sizeof(display_msg.text), "%s Infracao! Acionando camera...", time_str);
                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
 
 

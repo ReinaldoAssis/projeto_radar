@@ -41,7 +41,7 @@ static void display_thread(void *arg1, void *arg2, void *arg3) {
             // if (rc != 0) {
             //     LOG_ERR("Failed to write data: %d", rc);
             // }
-            LOG_INF("\t\t %s \t |brilho=%d, contraste=%d|", data.text, data.brightness, data.contrast);
+            LOG_INF("%s \t |brilho=%d, contraste=%d|", data.text, data.brightness, data.contrast);
         }
     }
 }

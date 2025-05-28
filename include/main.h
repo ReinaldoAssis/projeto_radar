@@ -34,6 +34,8 @@ struct network_event_t {
     };
 };
 
+int get_converted_sntp_time(struct tm *tm_brazil, char *time_str);
+
 ZBUS_CHAN_DECLARE(network_chan);
 
 #endif
