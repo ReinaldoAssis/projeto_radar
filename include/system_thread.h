@@ -1,6 +1,9 @@
 #ifndef SYSTEM_THREAD_H
 #define SYSTEM_THREAD_H
 
+#include <time.h>
+
+
 #define PLACA_BRASIL        "Brasil [LLL N L NN]"
 #define PLACA_ARGENTINA     "Argentina [LL NNN LL]"
 #define PLACA_PARAGUAI_CARRO "Paraguai (Carro) [LLLL NNN]"
