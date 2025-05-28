@@ -5,6 +5,8 @@
 #include "sensor.h"
 #include "display.h"
 #include "system_thread.h"
+#include "main.h"
+#include "main.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/zbus/zbus.h>
@@ -14,7 +16,7 @@
 
 LOG_MODULE_REGISTER(system_thread);
 
-#define SYSTEM_THREAD_STACK_SIZE 1024
+#define SYSTEM_THREAD_STACK_SIZE 2048
 #define SYSTEM_THREAD_PRIORITY 1
 
 
@@ -130,6 +132,10 @@ bool validar_placa_mercosul(const char *placa, char *padrao) {
 ZBUS_MSG_SUBSCRIBER_DEFINE(main_subscriber);
 ZBUS_CHAN_ADD_OBS(velocidade_chan, main_subscriber, 3);
 
+ZBUS_MSG_SUBSCRIBER_DEFINE(network_system_subscriber);
+ZBUS_CHAN_ADD_OBS(network_chan, network_system_subscriber, 3);
+
+
 void system_thread(void *arg1, void *arg2, void *arg3) {
     struct velocidade_evento_t evento;
     const struct zbus_channel *chan;
@@ -155,11 +161,24 @@ void system_thread(void *arg1, void *arg2, void *arg3) {
             if (evento.event_id != last_event_id && evento.velocidade_kmh > limite) {
                 last_event_id = evento.event_id;
 
+                struct tm tm_brazil;
+                char time_str[49];
+                int req_err = get_converted_sntp_time(&tm_brazil, time_str);
+ 
+                if (req_err) {
+                    snprintf(display_msg.text, sizeof(display_msg.text), "Erro SNTP: %d", req_err);
+                    zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+                    time_str[0] = '\0';
+                    tm_brazil = (struct tm){0};
+                }
+
                 /*
                     Sending violation message to display
                 */
-                snprintf(display_msg.text, sizeof(display_msg.text), "Infracao! Acionando camera...");
+                snprintf(display_msg.text, sizeof(display_msg.text), "%s Infracao! Acionando camera...", time_str);
                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
+
 
                 int err = camera_api_capture(K_MSEC(200));
                 if (err) {
