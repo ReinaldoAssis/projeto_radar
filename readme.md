@@ -1,4 +1,4 @@
-<img src="./LOGO.png" width="400" height="400" alt="Logo">
+<img src="./LOGO.png" align="center" width="400" height="400" alt="Logo">
 
 # RAD.Z
 
