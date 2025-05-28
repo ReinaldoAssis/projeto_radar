@@ -1,17 +1,21 @@
 <div align="center">
-    <img src="./LOGO.png" width="400" height="400" alt="Logo">
+  <img src="./LOGO.png" width="400" height="400" alt="Logo">
 </div>
 
+<div align="center" style="display: flex; justify-content: center; align-items: center; gap: 20px;">
+  <img src="https://www.zephyrproject.org/wp-content/uploads/2023/03/Zephyr_color-13.png" width="200" height="100" alt="Zephyr Logo">
+  <img src="https://ugc.production.linktr.ee/nRDs59ALTVeGJIxgHgjP_awnDKEe0bxPs05Xc" width="100" height="130" alt="UFAL Logo">
+</div>
 
 # RAD.Z
 
 RAD.Z is an embedded systems project using Zephyr RTOS. It was created during the 2024.2 semester at the Federal University of Alagoas (UFAL), as part of the course "Embedded Systems" (ECOM042) ministated by Professor Rodrigo J. S. Peixoto.
 
-## Project Description
+## 📋 Project Description
 
 The project consists of a simple embedded system for a traffic violation radar detection system. It uses two sensors separated by a distance (configurable via Kconfig) to detect the speed of a vehicle passing between them. If the vehicle exceeds a predefined speed limit (also configurable), it triggers the camera module. The system is designed to be modular and easily configurable.
 
-## Architecture
+## 🏗️ Architecture
 
 The system is built using a multi-threaded architecture with Zephyr's ZBUS message passing system for inter-thread communication. The main components are:
 
@@ -21,7 +25,7 @@ The system is built using a multi-threaded architecture with Zephyr's ZBUS messa
 - **System Thread**: Main control logic that coordinates all components
 - **Network Thread**: Handles network operations (NTP time sync)
 
-## Configuration Options (Kconfig)
+## ⚙️ Configuration Options (Kconfig)
 
 The following options can be configured through Kconfig:
 
@@ -42,7 +46,7 @@ The following options can be configured through Kconfig:
 - `CONFIG_NET_SAMPLE_SNTP_SERVER_PORT`: SNTP server port (default: 123)
 - `CONFIG_NET_SAMPLE_SNTP_SERVER_TIMEOUT_MS`: Response timeout (default: 1000)
 
-## Threads
+## 🧵 Threads
 
 ### Sensor Thread (`sensor_thread`)
 - **Priority**: 2
@@ -70,7 +74,7 @@ Simulates camera operations for license plate capture. Responds to capture comma
 
 Handles network operations including NTP time synchronization for accurate timestamping of violations.
 
-## ZBUS Channels
+## 📡 ZBUS Channels
 
 The system uses the following ZBUS channels for inter-thread communication:
 
@@ -80,7 +84,7 @@ The system uses the following ZBUS channels for inter-thread communication:
 - `chan_camera_cmd`: Camera command channel
 - `chan_camera_evt`: Camera event/response channel
 
-## License Plate Validation
+## 🚗 License Plate Validation
 
 The system supports Mercosul standard license plates for the following countries:
 
@@ -93,7 +97,7 @@ The system supports Mercosul standard license plates for the following countries
 
 Where L = Letter and N = Number.
 
-## Project Structure
+## 📁 Project Structure
 
 ```
 projeto_radar/
@@ -121,7 +125,7 @@ projeto_radar/
 └── readme.md               
 ```
 
-## Building the Project
+## 🔨 Building the Project
 
 1. Set up Zephyr development environment
 2. Clone this repository to your Zephyr workspace
@@ -132,7 +136,7 @@ projeto_radar/
    ```
 
 
-## Testing
+## 🧪 Testing
 
 The project includes unit tests:
 
@@ -159,7 +163,7 @@ And
 west twister -p qemu_cortex_m3 -T tests/sensor
 ```
 
-## Usage
+## 🚀 Usage
 
 The system operates in two modes: normal operation and simulation mode. In normal operation, it continuously monitors for vehicle passages and functions as normal, but since this is not a real physical system, we have to rely on simulated inputs. In simulation mode, you can enable `CONFIG_SIM_CAR_PASSAGE` to simulate vehicle passages for testing purposes.
 
@@ -168,7 +172,7 @@ The system operates in two modes: normal operation and simulation mode. In norma
 3. **Speed Violation**: When speed exceeds the configured limit, camera captures license plate
 4. **Display Output**: System status and violations are shown on the display
 
-## Authors
+## 👥 Authors
 
 - Students: 
   - Reinaldo M. Assis (@reinaldoassis)
