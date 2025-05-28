@@ -1,113 +1,184 @@
-# Especificação do projeto
+![](./LOGO.png)
 
-Proposta de Projeto: Radar Eletrônico Simplificado
-Disciplina: Sistemas Embarcados
-Plataforma: qemu_cortex_m3 (Zephyr RTOS)
-Equipe: em dupla
-Data: 15 de maio de 20251. 
+# RAD.Z
 
-Introdução e Objetivos
-Este projeto visa a implementação de um sistema de radar eletrônico simplificado utilizando o Zephyr RTOS na plataforma emulada qemu_cortex_m3. O objetivo principal é consolidar conhecimentos em sistemas embarcados, incluindo o uso de RTOS (multithreading, sincronização, comunicação inter-tarefas), drivers de dispositivos (GPIO, Display, Ethernet), configuração via Kconfig e integração com serviços de rede (NTP, envio de dados para a nuvem).
+RAD.Z is an embedded systems project using Zephyr RTOS. It was created during the 2024.2 semester at the Federal University of Alagoas (UFAL), as part of the course "Embedded Systems" (ECOM042) ministated by Professor Rodrigo J. S. Peixoto.
 
-O sistema simulará a detecção de velocidade de veículos através de sensores no solo, exibirá a velocidade e status de infração em um display virtual, e reportará infrações com dados relevantes (incluindo placa veicular simulada) para um serviço web na nuvem com data  data e hora obtidas via NTP.
+## Project Description
 
-2. Descrição Funcional
-O radar eletrônico proposto terá as seguintes funcionalidades:
-Detecção de Passagem e Velocidade: Utilizará dois sensores magnéticos simulados (GPIOs 5 e 6 no QEMU) com um afastamento configurável (Kconfig) para detectar a passagem de um veículo. A velocidade será calculada com base na distância entre os sensores e o tempo decorrido entre as ativações do primeiro e do segundo sensor.
-Detecção de Infração: Comparará a velocidade calculada com um limite de velocidade configurável (Kconfig).
-Exibição no Visor: Utilizará o driver "Display Dummy" do Zephyr para exibir a velocidade atual do veículo detectado e indicar claramente se ocorreu uma infração por excesso de velocidade.
-Captura de Dados do Veículo (Simulada): Em caso de infração, um sistema de câmera simulado será acionado. Este sistema retornará (via ZBUS) uma placa veicular (formato Mercosul) e um hash da foto.
-Validação de Placa: A placa retornada pela câmera simulada deve ser validada para garantir que segue o formato Mercosul (Brasil, Argentina, Paraguai). O sistema de câmera simulará uma falha em 10% dos casos, retornando uma placa inválida. Apenas placas válidas serão consideradas para reportar a infração.
-Obtenção de Data e Hora (NTP): O sistema deve se conectar a um servidor NTP para obter a data e hora precisas para registrar a infração.
-Envio de Dados para a Nuvem: Em caso de infração com placa válida, os dados da infração (data, hora, placa, tipo de veículo, hash da foto) serão enviados para um serviço na nuvem através da interface Ethernet.
-3. Design Técnico
-Plataforma: qemu_cortex_m3.
-Sistema Operacional: Zephyr RTOS.
-Drivers/APIs do Zephyr: GPIO, Display, Ethernet, Rede (Sockets, NTP), ZBUS, Kconfig.
-Arquitetura de Software: O sistema será estruturado em múltiplos threads concorrentes para gerenciar as diferentes funcionalidades de forma assíncrona:
-Thread Principal / Controle: Orquestração geral, recebimento de dados de velocidade, detecção de infração, acionamento da câmera, validação da placa e envio de dados para a thread de rede.
-Thread de Sensores: Monitoramento dos GPIOs dos sensores. Utilizará interrupts para capturar timestamps precisos na detecção de bordas (indicação de passagem da roda). Calculará o tempo entre as ativações dos sensores e enviará este dado para a Thread Principal.
-Thread de Display: Responsável por atualizar periodicamente o conteúdo exibido no visor virtual com a velocidade atual, limite e status de infração, utilizando a API do Display driver.
-Thread de Rede: Gerenciamento da conexão de rede, execução do cliente NTP para sincronização de hora/data e envio dos dados formatados da infração para o serviço na nuvem (e.g., via HTTP POST).
-Thread de Simulação da Câmera/LPR: Aguarda por um trigger via ZBUS. Ao receber o trigger, simula um tempo de processamento e gera uma placa veicular (Mercosul válida ou inválida, com probabilidade configurável) e um hash de foto. Publica os resultados em um canal ZBUS de conclusão.
+The project consists of a simple embedded system for a traffic violation radar detection system. It uses two sensors separated by a distance (configurable via Kconfig) to detect the speed of a vehicle passing between them. If the vehicle exceeds a predefined speed limit (also configurable), it triggers the camera module. The system is designed to be modular and easily configurable.
 
-Comunicação Inter-Threads:
-Utilização de ZBUS para comunicação entre a Thread Principal e a Thread de Simulação da Câmera (trigger e retorno de resultados).
-Outros mecanismos do Zephyr como filas de mensagens ou semáforos podem ser utilizados para comunicação de dados de velocidade e infração entre as threads, conforme necessário.
+## Architecture
 
-Simulação de Hardware: Os sensores serão simulados por eventos de mudança de estado em GPIOs específicos no QEMU. A câmera será totalmente simulada em software, utilizando ZBUS para sua interface. O display será o "Display Dummy" do Zephyr.
-Networking: Será configurado o stack TCP/IP do Zephyr. Um cliente NTP será utilizad através de biblioteca já disponível. Para o envio para a nuvem, será escolhido um protocolo simples como HTTP e um serviço online (como webhook.site ou similar) que permita receber requisições HTTP POST e exibir os dados.
-4. Configuração (Kconfig)
-As seguintes opções serão configuráveis via Kconfig:
-CONFIG_RADAR_SENSOR_DISTANCE_MM: Distância entre os dois sensores em milímetros (inteiro).
-CONFIG_RADAR_SPEED_LIMIT_KMH: Limite de velocidade em km/h (inteiro).
-CONFIG_RADAR_CAMERA_FAILURE_RATE_PERCENT: Porcentagem de chance da câmera simular uma falha e retornar uma placa inválida (inteiro 0-100).
+The system is built using a multi-threaded architecture with Zephyr's ZBUS message passing system for inter-thread communication. The main components are:
 
-5. Estratégia de Testes
-Será adotada uma estratégia de testes que combina testes automatizados e manuais:
-Testes de Unidade (Automatizados):
-Função de cálculo de velocidade (dado tempo e distância, verifica a velocidade calculada).
-Função de validação de placa Mercosul (testar diversos formatos válidos e inválidos para BR, AR, PY).
-Funções de formatação dos dados para envio à nuvem.
-Será utilizada a estrutura de testes ztest do Zephyr para implementar testes unitários em partes do código.
+- **Sensor Module**: Detects vehicle passage and calculates speed
+- **Camera Service**: Captures license plate data when violations occur
+- **Display Module**: Shows system status and violation information
+- **System Thread**: Main control logic that coordinates all components
+- **Network Thread**: Handles network operations (NTP time sync)
 
+## Configuration Options (Kconfig)
 
-Testes de Integração (Automatizados/Semi-automatizados):
-Testar o fluxo completo: Simular eventos de GPIO para os sensores, verificar se a velocidade é calculada e a infração detectada.
-Verificar se os dados da infração são corretamente passados para a thread de rede.
-Testar a comunicação via ZBUS entre a thread principal e a simulação da câmera.
+The following options can be configured through Kconfig:
 
+### Radar Configuration
+- `CONFIG_RADAR_SENSOR_DISTANCE_MM`: Distance between sensors in millimeters (default: 5000)
+- `CONFIG_RADAR_SPEED_LIMIT_KMH`: Speed limit in km/h for violation detection (default: 60)
+- `CONFIG_SIMULATE_PROCESSING_TIME`: Enable processing time simulation (default: y)
+- `CONFIG_RADAR_PROCESSING_TIME_MS`: Processing time in milliseconds (default: 500)
 
-Testes Manuais:
-Execução no QEMU e observação do Display Dummy.
-Utilização das ferramentas de simulação de GPIO do QEMU para simular passagens de veículos com diferentes velocidades.
-Monitoramento do tráfego de rede (e.g., com Wireshark ou similar, caso seja aplicável) para verificar o envio correto dos pacotes HTTP para o serviço na nuvem.
-Verificação dos dados recebidos no serviço web na nuvem.
+### Feature Flags
+- `CONFIG_SIM_CAR_PASSAGE`: Enable car passage simulation for testing
+- `CONFIG_TEST_SNTP`: Enable SNTP time synchronization testing (default: y)
+- `CONFIG_ZTEST`: Enable unit testing mode
+- `CONFIG_DUMMY_DISPLAY`: Enable dummy display driver (default: y)
 
+### Network Configuration
+- `CONFIG_NET_SAMPLE_SNTP_SERVER_ADDRESS`: SNTP server address (default: "a.st1.ntp.br")
+- `CONFIG_NET_SAMPLE_SNTP_SERVER_PORT`: SNTP server port (default: 123)
+- `CONFIG_NET_SAMPLE_SNTP_SERVER_TIMEOUT_MS`: Response timeout (default: 1000)
 
+## Threads
 
-Será dada ênfase à criação de testes automatizados, alinhado aos critérios de avaliação.
-6. Gerenciamento do Projeto e Cronograma
-O projeto será desenvolvido utilizando Git para controle de versão, com um repositório compartilhado apenas entre a equipe e o professor (GitHub, login do professor no github: rodrigopex).
+### Sensor Thread (`sensor_thread`)
+- **Priority**: 2
+- **Stack Size**: 1024 bytes
 
-Cronograma (sugerido):
-Semana 1 (até Entrega Parcial - Dia 22/Maio):
-Configuração inicial do ambiente Zephyr e QEMU.
-Implementação do cálculo básico de velocidade (assumindo distância fixa inicial).
-Configuração básica do Kconfig para distância e limite.
-Estrutura básica de threads.
-Commit e push da versão parcial.
-Configuração e uso inicial do Display Dummy para exibir a velocidade calculada.
-Implementação da detecção de infração.
-Implementação completa do cliente NTP e obtenção de data/hora.
+Manages GPIO sensors (sw0/sw1 aliases), calculates vehicle speed and publishes speed events to `velocidade_chan`. At startup, it initializes the sensors and sets up GPIO interrupts. When both sensors are triggered in sequence, it calculates the vehicle's speed based on the time difference and configured distance.
 
+### System Thread (`system_thread`)
+- **Priority**: 1 (highest)
 
-Semana 2:
-Implementação da lógica de validação de placa Mercosul.
-Integração da Thread Principal com a câmera simulada via ZBUS.
-Desenvolvimento e escrita dos testes unitários e de integração.
-Implementação do envio de dados da infração para a nuvem (escolha e integração do serviço web e protocolo HTTP).
-Integração final de todas as threads.
-Refinamento do código e documentação (README).
-Testes completos do sistema.
-Revisão do código e preparação para entrega final.
-7. Entregáveis
-Link para o repositório Git contendo todo o código-fonte do projeto.
-Arquivo README.md detalhado no repositório com:
-Descrição do projeto.
-Instruções passo a passo para configurar o ambiente e executar o projeto no QEMU.
-Explicação das opções configuráveis via Kconfig.
-Descrição da arquitetura e funcionamento dos diferentes módulos/threads.
-Instruções para rodar os testes (se automatizados).
-Detalhes sobre o serviço web na nuvem utilizado.
+Main control logic for violation detection and camera triggering. Subscribes to velocity events and triggers the camera service when speed violations are detected. Handles license plate validation using Mercosul standards and displays violation information.
 
+### Display Thread (`display_thread`)
+- **Priority**: 4
 
-8. Alinhamento com Critérios de Avaliação
-A elaboração e execução deste projeto estão diretamente alinhadas aos critérios de avaliação:
-Qualidade de Código: Será priorizada a escrita de código limpo, modular, bem comentado e seguindo boas práticas de programação embarcada. O uso de Git facilitará revisões e organização.
-Criatividade: A escolha e implementação do serviço de nuvem, e a forma de apresentar as informações no Display Dummy permitirão demonstrar criatividade na resolução dos problemas.
-Aplicação de Testes Automáticos: A inclusão de testes unitários e de integração utilizando ztest (ou abordagem similar) será uma parte fundamental do desenvolvimento.
-Uso Adequado do Zephyr: O projeto explora diversas funcionalidades do Zephyr RTOS (multithreading, Kconfig, drivers, ZBUS, networking), demonstrando um bom entendimento e aplicação da framework.
-Uso Adequado do Git: O uso de branches, commits significativos e um fluxo de trabalho colaborativo (em caso de dupla) garantirá um bom uso da ferramenta.
-9. Conclusão
-Acreditamos que esta proposta de projeto aborda todos os requisitos da disciplina de forma desafiadora, mas realizável dentro do prazo. A estrutura modular e o uso de Zephyr permitirão um desenvolvimento organizado e o aprendizado prático de conceitos fundamentais de sistemas embarcados. Estamos confiantes em entregar um sistema funcional, bem documentado e com boa qualidade de código.
+Manages the auxiliary display device for showing system status, violation alerts, and license plate information. Subscribes to display channel messages and updates the display accordingly.
+
+### Camera Thread (`camera_thread`)
+- **Priority**: 3
+
+Simulates camera operations for license plate capture. Responds to capture commands and publishes camera events with either captured license plate data or error codes. Includes simulation of processing delays and random success/failure scenarios.
+
+### Network Thread (`network_thread`)
+- **Priority**: 4
+
+Handles network operations including NTP time synchronization for accurate timestamping of violations.
+
+## ZBUS Channels
+
+The system uses the following ZBUS channels for inter-thread communication:
+
+- `sensor_chan`: Publishes sensor trigger events
+- `velocidade_chan`: Publishes calculated speed events
+- `display_chan`: Publishes display update messages
+- `chan_camera_cmd`: Camera command channel
+- `chan_camera_evt`: Camera event/response channel
+
+## License Plate Validation
+
+The system supports Mercosul standard license plates for the following countries:
+
+- **Brasil**: LLL N L NN (e.g., ABC1D23)
+- **Argentina**: LL NNN LL (e.g., AB123CD)
+- **Paraguai (Carro)**: LLLL NNN (e.g., ABCD123)
+- **Paraguai (Moto)**: NNN LLLL (e.g., 123ABCD)
+- **Uruguai**: LLL NNNN (e.g., ABC1234)
+- **Bolivia**: LL NNNNN (e.g., AB12345)
+
+Where L = Letter and N = Number.
+
+## Project Structure
+
+```
+projeto_radar/
+├── src/
+│   ├── main.c              # Main application entry point
+│   ├── sensor.c            # Sensor management and speed calculation
+│   ├── display.c           # Display thread implementation
+│   └── system_thread.c     # Main system logic and plate validation
+├── include/
+│   ├── sensor.h            # Sensor module interface
+│   ├── display.h           # Display module interface
+│   ├── system_thread.h     # System thread interface
+│   └── net_sample_common.h # Network utilities
+├── camera_service/
+│   ├── src/
+│   │   └── camera_service.c # Camera service implementation
+│   └── include/
+│       └── camera_service.h # Camera service interface
+├── tests/
+│   ├── sensor/
+│   │   └── test_sensor.c    # Sensor unit tests
+│   └── validar_placa/
+│       └── test_validacao.c # License plate validation tests
+├── Kconfig                  # Configuration options
+└── readme.md               
+```
+
+## Building the Project
+
+1. Set up Zephyr development environment
+2. Clone this repository to your Zephyr workspace
+3. Configure the project:
+   ```bash
+   west build -p auto -b <your_board>
+   ```
+4. Flash to device:
+   ```bash
+   west flash
+   ```
+
+## Testing
+
+The project includes unit tests:
+
+### Sensor Tests
+Located in `tests/sensor/test_sensor.c`:
+- Basic speed calculation validation
+- Edge cases (zero time, zero distance, negative values)
+- High-speed scenarios
+
+### License Plate Validation Tests
+Located in `tests/validar_placa/test_validacao.c`:
+- Tests for all supported Mercosul countries
+- Invalid plate format detection
+
+Run tests with:
+
+```bash
+west twister -p qemu_cortex_m3 -T tests/validar_placa
+```
+
+And 
+
+```bash
+west twister -p qemu_cortex_m3 -T tests/sensor
+```
+
+## Usage
+
+1. **Normal Operation**: The system continuously monitors for vehicle passage
+2. **Simulation Mode**: Enable `CONFIG_SIM_CAR_PASSAGE` to simulate vehicle passages
+3. **Speed Violation**: When speed exceeds the configured limit, camera captures license plate
+4. **Display Output**: System status and violations are shown on the display
+
+## Dependencies
+
+- Zephyr RTOS
+- GPIO drivers for sensor inputs
+- ZBUS for inter-thread communication
+- Auxiliary display driver
+- Network stack (for NTP functionality)
+
+## Authors
+
+- Students: 
+  - Reinaldo M. Assis (@reinaldoassis)
+  - Matheus M. Rodrigues (@Matheus-Rodrigues-1892)
+- Professor: Rodrigo J. S. Peixoto
+- Institution: Federal University of Alagoas (UFAL)
+- Course: ECOM042 - Embedded Systems
+- Semester: 2024.2
