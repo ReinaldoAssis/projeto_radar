@@ -33,6 +33,8 @@ K_THREAD_STACK_DEFINE(network_stack, NETWORK_THREAD_STACK_SIZE);
 #define NTP_TIMESTAMP_DIFF     (2208988800)
 #define NTP_MAX_INT_AS_DOUBLE  (4294967295.0)
 
+#define TIMEZONE_OFFSET_SECONDS (-3 * 3600)
+
 static void network_thread(void *arg1, void *arg2, void *arg3) {
     while (1) {
         k_msleep(1000);
@@ -46,21 +48,25 @@ static void network_thread(void *arg1, void *arg2, void *arg3) {
 void test_sntp(void)
 {
     struct sntp_time ts;
-    int rc;
+    int rc;    
+    const char *ntp_server = "pool.ntp.org:123";
 
-    // Use o endereço do servidor NTP no formato string
-    const char *ntp_server = "200.160.7.186:123";
-
-    rc = sntp_simple(ntp_server, 10000, &ts);
-
-    if (rc == 0) {
+    rc = sntp_simple(ntp_server, 10000, &ts);    if (rc == 0) {
         
-        time_t unix_time = (time_t)(ts.seconds - NTP_TIMESTAMP_DIFF);
+        time_t unix_time;
         
-        struct tm *tm = gmtime(&unix_time);
-        if (tm) {
+        if (ts.seconds < NTP_TIMESTAMP_DIFF) {
+
+            unix_time = (time_t)ts.seconds;
+        } else {
+            unix_time = (time_t)(ts.seconds - NTP_TIMESTAMP_DIFF);
+        }       
+        time_t datetime = unix_time + TIMEZONE_OFFSET_SECONDS;
+
+        struct tm *tm_brazil = gmtime(&datetime);
+        if (tm_brazil) {
             char time_str[49];
-            strftime(time_str, 48, "[%Y-%m-%d %H:%M:%S]", tm);
+            strftime(time_str, 48, "[%Y-%m-%d %H:%M:%S]", tm_brazil);
             LOG_INF("Converted time: %s", time_str);
         } else {
             LOG_ERR("Failed to convert time to struct tm");

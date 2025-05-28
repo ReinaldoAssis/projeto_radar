@@ -22,9 +22,7 @@ Bolivia
 LL NNNNN
 */
 
-/**
- * @brief 
- */
+
 ZTEST(validar, test_validar_placa_brasil) {
     char *placa = "ABC1D23";
     char padrao[64] = "";
@@ -33,9 +31,7 @@ ZTEST(validar, test_validar_placa_brasil) {
     zassert_str_equal(padrao, PLACA_BRASIL, "Padrão de placa do Brasil inválido");
 }
 
-/**
- * @brief 
- */
+
 ZTEST(validar, test_validar_placa_argentina) {
     char *placa = "AB123CD";
     char padrao[64] = "";
@@ -44,9 +40,7 @@ ZTEST(validar, test_validar_placa_argentina) {
     zassert_str_equal(padrao, PLACA_ARGENTINA, "Padrão de placa da Argentina inválido");
 }
 
-/**
- * @brief 
- */
+
 ZTEST(validar, test_validar_placa_paraguai_carro) {
     char *placa = "ABCD123";
     char padrao[64] = "";
@@ -55,9 +49,7 @@ ZTEST(validar, test_validar_placa_paraguai_carro) {
     zassert_str_equal(padrao, PLACA_PARAGUAI_CARRO, "Padrão de placa do Paraguai (Carro) inválido");
 }
 
-/**
- * @brief 
- */
+
 ZTEST(validar, test_validar_placa_paraguai_moto) {
     char *placa = "123ABCD";
     char padrao[64] = "";
@@ -65,9 +57,7 @@ ZTEST(validar, test_validar_placa_paraguai_moto) {
     zassert_true(resultado, "Placa do Paraguai (Moto) inválida");
     zassert_str_equal(padrao, PLACA_PARAGUAI_MOTO, "Padrão de placa do Paraguai (Moto) inválido");
 }
-/**
- * @brief 
- */
+
 ZTEST(validar, test_validar_placa_uruguai) {
     char *placa = "ABC1234";
     char padrao[64] = "";
@@ -75,9 +65,7 @@ ZTEST(validar, test_validar_placa_uruguai) {
     zassert_true(resultado, "Placa do Uruguai inválida");
     zassert_str_equal(padrao, PLACA_URUGUAI, "Padrão de placa do Uruguai inválido");
 }
-/**
- * @brief 
- */
+
 ZTEST(validar, test_validar_placa_bolivia) {
     char *placa = "AB12345";
     char padrao[64] = "";
