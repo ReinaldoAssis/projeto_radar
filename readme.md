@@ -1,4 +1,4 @@
-![](./LOGO.png)
+<img src="./LOGO.png" width="400" height="400" alt="Logo">
 
 # RAD.Z
 
