@@ -6,6 +6,7 @@
 #include "display.h"
 #include "system_thread.h"
 #include "main.h"
+#include "main.h"
 
 #include <zephyr/kernel.h>
 #include <zephyr/zbus/zbus.h>
@@ -176,6 +177,7 @@ void system_thread(void *arg1, void *arg2, void *arg3) {
                 */
                 snprintf(display_msg.text, sizeof(display_msg.text), "%s Infracao! Acionando camera...", time_str);
                 zbus_chan_pub(&display_chan, &display_msg, K_NO_WAIT);
+
 
 
                 int err = camera_api_capture(K_MSEC(200));
