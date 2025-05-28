@@ -122,14 +122,12 @@ projeto_radar/
 
 1. Set up Zephyr development environment
 2. Clone this repository to your Zephyr workspace
-3. Configure the project:
+3. Build the project:
    ```bash
-   west build -p auto -b <your_board>
+   west build --pristine -b qemu_cortex_m3 . &&
+   west build -t run
    ```
-4. Flash to device:
-   ```bash
-   west flash
-   ```
+
 
 ## Testing
 
@@ -160,18 +158,12 @@ west twister -p qemu_cortex_m3 -T tests/sensor
 
 ## Usage
 
+The system operates in two modes: normal operation and simulation mode. In normal operation, it continuously monitors for vehicle passages and functions as normal, but since this is not a real physical system, we have to rely on simulated inputs. In simulation mode, you can enable `CONFIG_SIM_CAR_PASSAGE` to simulate vehicle passages for testing purposes.
+
 1. **Normal Operation**: The system continuously monitors for vehicle passage
 2. **Simulation Mode**: Enable `CONFIG_SIM_CAR_PASSAGE` to simulate vehicle passages
 3. **Speed Violation**: When speed exceeds the configured limit, camera captures license plate
 4. **Display Output**: System status and violations are shown on the display
-
-## Dependencies
-
-- Zephyr RTOS
-- GPIO drivers for sensor inputs
-- ZBUS for inter-thread communication
-- Auxiliary display driver
-- Network stack (for NTP functionality)
 
 ## Authors
 
