@@ -172,7 +172,7 @@ The system operates in two modes: normal operation and simulation mode. In norma
 3. **Speed Violation**: When speed exceeds the configured limit, camera captures license plate
 4. **Display Output**: System status and violations are shown on the display
 
-## 👥 Authors
+## 👨🏻‍💻 Authors
 
 - Students: 
   - Reinaldo M. Assis (@reinaldoassis)
